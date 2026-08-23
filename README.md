@@ -28,6 +28,20 @@ config-init is written in [Solod](https://github.com/solod-dev/solod), a subset 
 translates to C: the binary is a few hundred kilobytes, starts instantly, and has no runtime
 dependencies.
 
+## Install
+
+The pre-commit hook (below) needs no separate install. For direct CLI use:
+
+```sh
+pip install config-init
+```
+
+PyPI wheels ship small static solod-built binaries for Linux and macOS (amd64 and
+arm64); other POSIX platforms build from the sdist. Standalone binaries are also
+attached to [GitHub releases](https://github.com/jmelahman/config-init/releases).
+Windows is not supported: solod's os package is POSIX-only, and the workflow
+depends on symlinks.
+
 ## Usage
 
 ```sh
@@ -125,3 +139,17 @@ How the two toolchains coexist:
 `go install github.com/jmelahman/config-init@version` is refused by Go because of the
 replace directive; that's intentional — use the pre-commit hook, a release binary, or
 `go install ./...` from a checkout.
+
+## Releasing
+
+Releases are cut by pushing a `v*.*.*` tag. The tag must match `Version` in
+`cli/cli.go` and `hookRev` in `cli/precommit.go` (`scripts/check-version.sh` guards
+this — solod has no ldflags-style stamping, so the constants are the source of
+truth). The workflow then publishes:
+
+- a GitHub release with static binaries via GoReleaser (`scripts/sobuild` swaps
+  `go build` for `so build` + `zig cc`, targeting musl for Linux), and
+- PyPI wheels for linux/macOS × amd64/arm64 plus an sdist, built by the hatch hook
+  in `hatch_build.py` with the same toolchain.
+
+`make snapshot` dry-runs the GoReleaser artifacts locally.

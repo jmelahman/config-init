@@ -35,3 +35,7 @@ go.work.sum
 /config-init
 /.cache/
 /config-init-go
+/dist/
+/.so-bin/
+*.whl
+__pycache__/

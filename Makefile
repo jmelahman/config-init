@@ -23,5 +23,9 @@ gotest:
 
 check: build gobuild test gotest
 
+# Local dry run of the GitHub release artifacts (needs goreleaser and zig).
+snapshot:
+	goreleaser release --snapshot --clean --skip=publish
+
 clean:
-	rm -f config-init config-init-go
+	rm -rf config-init config-init-go dist

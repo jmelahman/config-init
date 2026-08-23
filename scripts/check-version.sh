@@ -1,0 +1,28 @@
+#!/bin/sh
+# Guards that the version constants agree with each other and, on tag
+# pushes in CI, with the pushed tag. Solod has no ldflags-style version
+# stamping, so the source constants are the single source of truth and
+# releases must be tagged to match.
+set -eu
+cd "$(dirname "$0")/.."
+
+ver=$(sed -n 's/^const Version = "\(.*\)"$/\1/p' cli/cli.go)
+rev=$(sed -n 's/^const hookRev = "\(.*\)"$/\1/p' cli/precommit.go)
+
+if [ -z "$ver" ]; then
+    echo "check-version: cannot find Version in cli/cli.go" >&2
+    exit 1
+fi
+if [ "$rev" != "v$ver" ]; then
+    echo "check-version: hookRev ($rev) != v$ver" >&2
+    exit 1
+fi
+if ! grep -q "    rev: $rev" cli/precommit.go; then
+    echo "check-version: freshPreCommitConfig rev line does not match $rev" >&2
+    exit 1
+fi
+if [ "${GITHUB_REF_TYPE:-}" = "tag" ] && [ "${GITHUB_REF_NAME:-}" != "v$ver" ]; then
+    echo "check-version: tag ${GITHUB_REF_NAME:-?} != v$ver" >&2
+    exit 1
+fi
+echo "check-version: OK ($ver)"

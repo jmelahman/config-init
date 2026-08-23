@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # ratchet:actions/checkout@v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # ratchet:actions/setup-go@v6.0.0
+        with:
+          go-version: stable
+          cache: false
+      - run: go install solod.dev/cmd/so@v0.3.0
+      - run: scripts/check-version.sh
+      - run: PATH="$(go env GOPATH)/bin:$PATH" make check
+  goreleaser:
+    needs: check
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # ratchet:actions/checkout@v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # ratchet:actions/setup-go@v6.0.0
+        with:
+          go-version: stable
+          cache: false
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # ratchet:astral-sh/setup-uv@v7.1.4
+        with:
+          enable-cache: false
+      - run: go install solod.dev/cmd/so@v0.3.0
+      # zig (via the ziglang PyPI package) for scripts/zigcc cross-compiles.
+      - run: |
+          uv venv "$HOME/.zig"
+          uv pip install -p "$HOME/.zig/bin/python" ziglang
+          echo "$HOME/.zig/bin" >> "$GITHUB_PATH"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # ratchet:goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-pypi:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        target:
+          - {goos: "linux", goarch: "amd64"}
+          - {goos: "linux", goarch: "arm64"}
+          - {goos: "darwin", goarch: "amd64"}
+          - {goos: "darwin", goarch: "arm64"}
+          - {sdist: true}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # ratchet:actions/checkout@v7.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # ratchet:astral-sh/setup-uv@v7.1.4
+        with:
+          enable-cache: false
+      - env:
+          MATRIX_GOOS: ${{ matrix.target.goos }}
+          MATRIX_GOARCH: ${{ matrix.target.goarch }}
+          MATRIX_SDIST: ${{ matrix.target.sdist }}
+        run: |
+          if [ "$MATRIX_SDIST" = "true" ]; then
+            uv build --sdist
+          else
+            GOOS="$MATRIX_GOOS" GOARCH="$MATRIX_GOARCH" uv build --wheel
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # ratchet:actions/upload-artifact@v6.0.0
+        with:
+          name: dist-${{ matrix.target.goos || 'sdist' }}-${{ matrix.target.goarch || 'source' }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+  publish-pypi:
+    needs: build-pypi
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    permissions:
+      id-token: write
+    steps:
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # ratchet:astral-sh/setup-uv@v7.1.4
+        with:
+          enable-cache: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # ratchet:actions/download-artifact@v6.0.0
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - run: uv publish dist/*
