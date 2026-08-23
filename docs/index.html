@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>config-init — declutter your repository root</title>
+<meta name="description" content="config-init moves tool config directories into .config/ and symlinks them back, keeping the repository root readable while every tool keeps working.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗂️</text></svg>">
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1f24;
+    --muted: #57606a;
+    --accent: #0b62d6;
+    --border: #d8dee4;
+    --code-bg: #f4f6f8;
+    --pre-bg: #f7f9fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1116;
+      --fg: #e2e8ee;
+      --muted: #9aa4af;
+      --accent: #6cb0ff;
+      --border: #2b323a;
+      --code-bg: #1a2027;
+      --pre-bg: #151b22;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 17px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 5rem;
+  }
+  header { margin-bottom: 2.5rem; }
+  h1 {
+    font-size: 2.2rem;
+    margin: 0 0 .3rem;
+    letter-spacing: -.02em;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  .tagline { color: var(--muted); font-size: 1.1rem; margin: 0 0 1rem; }
+  nav a { margin-right: 1.2rem; }
+  h2 {
+    font-size: 1.35rem;
+    margin: 2.8rem 0 .8rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--border);
+    letter-spacing: -.01em;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  p, li { max-width: 42rem; }
+  code {
+    font: .88em ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    padding: .12em .35em;
+    border-radius: 4px;
+  }
+  pre {
+    background: var(--pre-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; font-size: .85rem; }
+  ol li, ul li { margin-bottom: .45rem; }
+  .muted { color: var(--muted); }
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>config-init</h1>
+  <p class="tagline">Declutter a project's root directory by organizing and initializing configuration files.</p>
+  <nav>
+    <a href="https://github.com/jmelahman/config-init">GitHub</a>
+    <a href="#usage">Usage</a>
+    <a href="#hook">Pre-commit hook</a>
+    <a href="#building">Building</a>
+  </nav>
+</header>
+
+<p>Tool config directories multiply at the repository root: <code>.claude/</code>,
+<code>.cursor/</code>, <code>.yarn/</code>, <code>.husky/</code>, <code>.vscode/</code>, …
+config-init moves them into a single <code>.config/</code> directory and symlinks them back
+into the root, so the tools keep working while the root stays readable:</p>
+
+<pre><code>before                        after
+──────                        ─────
+.claude/                      .config/
+.cursor/                      ├── .claude/
+.yarn/                        ├── .cursor/
+.github/                      └── .yarn/
+src/                          .claude  -&gt; .config/.claude   (symlink, gitignored)
+                              .cursor  -&gt; .config/.cursor   (symlink, gitignored)
+                              .yarn    -&gt; .config/.yarn     (symlink, gitignored)
+                              .github/
+                              src/</code></pre>
+
+<p>Only <code>.config/</code> is tracked by git. The root symlinks are gitignored and
+recreated after <code>clone</code>/<code>checkout</code>/<code>merge</code>/<code>rebase</code>
+by a <a href="https://pre-commit.com">pre-commit</a> hook (also compatible with
+<a href="https://github.com/j178/prek">prek</a>).</p>
+
+<p>config-init is written in <a href="https://github.com/solod-dev/solod">Solod</a>, a subset
+of Go that translates to C: the binary is a few hundred kilobytes, starts instantly, and has
+no runtime dependencies.</p>
+
+<h2 id="usage">Usage</h2>
+
+<pre><code>config-init migrate              # migrate all root dotfiles (see exclusions below)
+config-init migrate .claude .env # migrate specific entries only
+config-init migrate --dry-run    # preview without changing anything
+config-init init                 # (re)create root symlinks for everything in .config/</code></pre>
+
+<p><code>migrate</code> does four things, each idempotent:</p>
+
+<ol>
+  <li>Moves root config entries into <code>.config/</code> and symlinks them back.</li>
+  <li>Adds anchored <code>/name</code> patterns for the symlinks to <code>.gitignore</code>.
+      If existing ignore patterns reach inside a moved directory (like
+      <code>.yarn/cache</code>), companion <code>/.config/...</code> patterns are added so
+      nothing previously ignored becomes tracked.</li>
+  <li>Registers the <code>config-init</code> hook in <code>.pre-commit-config.yaml</code>
+      (creating the file if needed) along with <code>default_install_hook_types</code>, so
+      the post-checkout/post-merge/post-rewrite hooks get installed.</li>
+  <li>Runs the equivalent of <code>config-init init</code>.</li>
+</ol>
+
+<p>Afterwards: <code>git add -A &amp;&amp; git commit</code>, and
+<code>pre-commit install</code> if hooks weren't installed already.</p>
+
+<p><code>init</code> walks <code>.config/</code> and ensures each entry has a root symlink.
+Correct links are left alone (and nothing is printed), stale links are repaired, and real
+files or directories are never touched — conflicts are reported and the exit code is
+non-zero.</p>
+
+<p><strong>Never migrated:</strong> <code>.git</code>, <code>.gitignore</code>,
+<code>.gitattributes</code>, <code>.gitmodules</code>, <code>.github</code>,
+<code>.pre-commit-config.yaml</code>, <code>.pre-commit-hooks.yaml</code> — git, GitHub, and
+pre-commit read these from the root before any hook can run. Skipped by the automatic scan
+(but migratable explicitly): caches and machine state like <code>.venv</code>,
+<code>.mypy_cache</code>, <code>.terraform</code>, and secrets like <code>.env</code>.</p>
+
+<h2 id="hook">Pre-commit hook</h2>
+
+<p><code>config-init migrate</code> writes this configuration:</p>
+
+<pre><code>default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
+repos:
+  - repo: https://github.com/jmelahman/config-init
+    rev: v0.1.0
+    hooks:
+      - id: config-init</code></pre>
+
+<p>Two hook ids are available:</p>
+
+<ul>
+  <li><code>config-init</code> — built by pre-commit's <code>golang</code> language support
+      (pre-commit and prek provision the Go toolchain themselves if needed). The build needs
+      no network access: the repository's default modfile backs the solod APIs with
+      <code>gocompat/</code>, a small Go-stdlib implementation, so the hook binary is
+      regular, fully functional Go.</li>
+  <li><code>config-init-system</code> — runs <code>config-init init</code> from
+      <code>PATH</code>; use it if you install a release binary yourself.</li>
+</ul>
+
+<p>Because the symlinks are gitignored, a fresh clone starts without them; the post-checkout
+hook restores them immediately.</p>
+
+<h2 id="symlinks">Why symlinks (and not hard links)?</h2>
+
+<p>Hard links can't reference directories at all (POSIX forbids it), and for files git breaks
+the link on every checkout that rewrites the file. Relative symlinks
+(<code>.claude -&gt; .config/.claude</code>) survive moves of the repository, work for files
+and directories alike, and every tool that resolves paths through the OS follows them
+transparently.</p>
+
+<p>The symlinks themselves are gitignored rather than committed so that checkouts on
+platforms without symlink support (Windows without developer mode) degrade gracefully: you
+can still run <code>config-init init</code> — or read the configs directly in
+<code>.config/</code> — instead of git materializing them as plain text files containing a
+path.</p>
+
+<h2 id="building">Building from source</h2>
+
+<p>The source is written once, in the Solod subset of Go, and builds with either
+toolchain:</p>
+
+<pre><code>make build      # so build -o config-init ./so   (native binary, needs solod + a C compiler)
+make test       # so test ./so
+make sanitize   # solod tests under ASan/UBSan
+make gobuild    # go build .                     (Go binary via gocompat, needs only Go)
+make gotest     # the same test suite against gocompat
+make check      # all of the above</code></pre>
+
+<p>How the two toolchains coexist:</p>
+
+<ul>
+  <li>The root module's <code>go.mod</code> replaces <code>solod.dev</code> with
+      <code>gocompat/</code>, a Go-stdlib-backed implementation of the solod APIs this tool
+      uses. The real solod.dev packages are transpiler stubs that only work once translated
+      to C, so this replacement is what makes a plain <code>go build</code> — and the
+      pre-commit hook — produce a working binary.</li>
+  <li>The nested module <code>so/</code> requires the real <code>solod.dev</code> and pulls
+      in the same <code>cli/</code> package via a directory replace; <code>so build ./so</code>
+      and <code>so test ./so</code> run there. (Replace directives only apply in the main
+      module, so the root's gocompat replacement is inert during solod builds.)</li>
+</ul>
+
+<p class="muted"><code>go install github.com/jmelahman/config-init@version</code> is refused
+by Go because of the replace directive; that's intentional — use the pre-commit hook, a
+release binary, or <code>go install ./...</code> from a checkout.</p>
+
+<footer>
+  <a href="https://github.com/jmelahman/config-init">config-init on GitHub</a> ·
+  GPL-3.0 licensed
+</footer>
+
+</main>
+</body>
+</html>
