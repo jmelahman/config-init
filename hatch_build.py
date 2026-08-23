@@ -82,6 +82,10 @@ def _ensure_so(root: str) -> str:
         raise RuntimeError("go is required to install the solod toolchain")
     env = os.environ.copy()
     env["GOBIN"] = str(gobin)
+    # GOOS/GOARCH describe the wheel's target; the so tool itself must be a
+    # host binary (and `go install` refuses cross-compiles with GOBIN set).
+    env.pop("GOOS", None)
+    env.pop("GOARCH", None)
     print(f"Installing solod.dev/cmd/so@{SOLOD_VERSION}...")
     subprocess.check_call(  # noqa: S603
         [go, "install", f"solod.dev/cmd/so@{SOLOD_VERSION}"],
