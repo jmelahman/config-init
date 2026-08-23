@@ -184,10 +184,10 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool) int {
 		fmt.Printf("config-init: dry run complete; re-run without --dry-run to apply\n")
 		return 0
 	}
-	fmt.Print(
-		"config-init: done. Suggested follow-up:\n",
-		"  git add -A && git commit\n",
-		"  pre-commit install  # installs post-checkout/post-merge hooks too\n")
+	fmt.Print(`config-init: done. Suggested follow-up:
+  git add -A && git commit
+  pre-commit install  # installs post-checkout/post-merge hooks too
+`)
 	return 0
 }
 

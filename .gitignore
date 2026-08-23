@@ -34,3 +34,4 @@ go.work.sum
 # config-init build artifacts
 /config-init
 /.cache/
+/config-init-go

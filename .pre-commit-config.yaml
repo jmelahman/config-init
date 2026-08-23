@@ -1,9 +1,9 @@
 repos:
   - repo: local
     hooks:
-      - id: so-generate
-        name: regenerate C translation (generated/)
-        entry: sh -c 'so translate -o generated .'
+      - id: check
+        name: build and test with both toolchains
+        entry: make check
         language: system
-        files: '(\.go|go\.mod|go\.sum)$'
+        files: '(\.go|go\.mod|so\.mod|go\.sum|so\.sum)$'
         pass_filenames: false

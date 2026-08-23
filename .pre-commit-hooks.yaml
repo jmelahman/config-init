@@ -9,9 +9,9 @@
 # `pre-commit install --hook-type post-checkout ...`.
 - id: config-init
   name: config-init
-  description: Recreate root symlinks into .config/. Compiles the committed C translation once with the system C compiler; no other toolchain needed.
-  entry: hooks/config-init
-  language: script
+  description: Recreate root symlinks into .config/. Built by the Go toolchain (the default modfile swaps solod.dev for the gocompat implementations); no other dependencies.
+  entry: config-init init
+  language: golang
   always_run: true
   pass_filenames: false
   stages: [post-checkout, post-merge, post-rewrite, manual]

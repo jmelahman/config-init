@@ -76,11 +76,12 @@ repos:
 
 Two hook ids are available:
 
-- `config-init` — self-contained. Compiles the C translation committed in this repository
-  once with the system C compiler (`cc`, override with `$CC`) and caches the binary. No Go,
-  no Solod, no install step needed.
-- `config-init-system` — runs `config-init init` from `PATH`; use it if you install the
-  binary yourself.
+- `config-init` — built by pre-commit's `golang` language support (pre-commit and prek
+  provision the Go toolchain themselves if needed). The build needs no network access:
+  the repository's default modfile backs the solod APIs with `gocompat/`, a small
+  Go-stdlib implementation, so the hook binary is regular, fully functional Go.
+- `config-init-system` — runs `config-init init` from `PATH`; use it if you install a
+  release binary yourself.
 
 Because the symlinks are gitignored, a fresh clone starts without them; the post-checkout
 hook restores them immediately.
@@ -99,18 +100,28 @@ instead of git materializing them as plain text files containing a path.
 
 ## Building from source
 
-Requires the [Solod](https://github.com/solod-dev/solod) toolchain (`go install
-solod.dev/cmd/so@latest`) and a C compiler:
+The source is written once, in the Solod subset of Go, and builds with either toolchain:
 
 ```sh
-make build      # so build -o config-init .
-make test       # so test ./cli
-make sanitize   # tests under ASan/UBSan
-make generate   # refresh the committed C translation in generated/
+make build      # so build -o config-init ./so   (native binary, needs solod + a C compiler)
+make test       # so test ./so
+make sanitize   # solod tests under ASan/UBSan
+make gobuild    # go build .                     (Go binary via gocompat, needs only Go)
+make gotest     # the same test suite against gocompat
+make check      # all of the above
 ```
 
-Alternatively, compile without any Go tooling from the committed translation:
+How the two toolchains coexist:
 
-```sh
-cc -O2 -I generated -o config-init $(find generated -name '*.c')
-```
+- The root module's `go.mod` replaces `solod.dev` with `gocompat/`, a Go-stdlib-backed
+  implementation of the solod APIs this tool uses. The real solod.dev packages are
+  transpiler stubs that only work once translated to C, so this replacement is what makes
+  a plain `go build` — and the pre-commit hook — produce a working binary.
+- The nested module `so/` requires the real `solod.dev` and pulls in the same `cli/`
+  package via a directory replace; `so build ./so` and `so test ./so` run there.
+  (Replace directives only apply in the main module, so the root's gocompat replacement
+  is inert during solod builds.)
+
+`go install github.com/jmelahman/config-init@version` is refused by Go because of the
+replace directive; that's intentional — use the pre-commit hook, a release binary, or
+`go install ./...` from a checkout.
