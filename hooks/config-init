@@ -1,0 +1,26 @@
+#!/bin/sh
+# pre-commit entry point (language: script).
+#
+# Compiles the committed C translation (generated/) once with the system C
+# compiler, caches the binary inside the hook-repo checkout, then runs
+# `config-init init` in the consumer repository. Consumers need a C
+# compiler but not Go or the solod toolchain.
+set -eu
+
+here=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+bin="$here/.cache/config-init"
+
+if [ ! -x "$bin" ]; then
+    mkdir -p "$here/.cache"
+    # Collect every generated .c file; globs keep paths with spaces intact.
+    set --
+    for f in "$here"/generated/*.c "$here"/generated/*/*.c \
+        "$here"/generated/*/*/*.c "$here"/generated/*/*/*/*.c; do
+        [ -e "$f" ] && set -- "$@" "$f"
+    done
+    tmp="$bin.tmp.$$"
+    ${CC:-cc} -O2 -I "$here/generated" -o "$tmp" "$@"
+    mv "$tmp" "$bin"
+fi
+
+exec "$bin" init

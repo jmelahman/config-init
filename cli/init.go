@@ -1,0 +1,84 @@
+package cli
+
+import (
+	"solod.dev/so/fmt"
+	"solod.dev/so/mem"
+	"solod.dev/so/os"
+)
+
+type linkResult int
+
+const (
+	linkOK linkResult = iota
+	linkCreated
+	linkRelinked
+	linkConflict
+	linkError
+)
+
+// cmdInit symlinks every entry of .config/ into the repository root.
+// A missing .config/ is a no-op so the hook is harmless in repos that
+// don't use config-init yet.
+func cmdInit(a mem.Allocator, dryRun bool) int {
+	fi, err := os.Lstat(configDir)
+	if err != nil {
+		return 0
+	}
+	if !fi.IsDir() {
+		fmt.Fprintf(os.Stderr, "config-init: %s exists but is not a directory\n", configDir)
+		return 1
+	}
+	entries, rerr := os.ReadDir(a, configDir)
+	if rerr != nil {
+		fmt.Fprintf(os.Stderr, "config-init: cannot read %s: %s\n", configDir, rerr.Error())
+		return 1
+	}
+	fails := 0
+	for _, e := range entries {
+		r := ensureLink(e.Name, dryRun)
+		if r == linkConflict || r == linkError {
+			fails++
+		}
+	}
+	if fails > 0 {
+		return 1
+	}
+	return 0
+}
+
+// ensureLink makes the root entry `name` a symlink to .config/name.
+// A correct link is left alone; a stale or wrong link is replaced; a real
+// file or directory is never touched.
+func ensureLink(name string, dryRun bool) linkResult {
+	target := configDir + "/" + name
+	result := linkCreated
+	fi, err := os.Lstat(name)
+	if err == nil {
+		if fi.Mode()&os.ModeSymlink == 0 {
+			fmt.Fprintf(os.Stderr, "config-init: %s already exists and is not a symlink; skipping (remove it or move it into %s/)\n", name, configDir)
+			return linkConflict
+		}
+		var buf [os.MaxPathLen]byte
+		dest, rerr := os.Readlink(buf[:], name)
+		if rerr == nil && dest == target {
+			return linkOK
+		}
+		result = linkRelinked
+		if !dryRun {
+			if os.Remove(name) != nil {
+				fmt.Fprintf(os.Stderr, "config-init: cannot remove stale link %s\n", name)
+				return linkError
+			}
+		}
+	}
+	if dryRun {
+		fmt.Printf("config-init: [dry-run] would link %s -> %s\n", name, target)
+		return result
+	}
+	if serr := os.Symlink(target, name); serr != nil {
+		fmt.Fprintf(os.Stderr, "config-init: cannot link %s -> %s: %s\n", name, target, serr.Error())
+		return linkError
+	}
+	fmt.Printf("config-init: linked %s -> %s\n", name, target)
+	return result
+}

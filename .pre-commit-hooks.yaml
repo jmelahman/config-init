@@ -1,0 +1,25 @@
+# Hooks provided by this repository. The symlinks that config-init manages
+# are gitignored, so they must be recreated after every operation that
+# rewrites the worktree — hence the post-checkout/post-merge/post-rewrite
+# stages. Install them with:
+#
+#   default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
+#
+# in .pre-commit-config.yaml (config-init migrate adds this), or with
+# `pre-commit install --hook-type post-checkout ...`.
+- id: config-init
+  name: config-init
+  description: Recreate root symlinks into .config/. Compiles the committed C translation once with the system C compiler; no other toolchain needed.
+  entry: hooks/config-init
+  language: script
+  always_run: true
+  pass_filenames: false
+  stages: [post-checkout, post-merge, post-rewrite, manual]
+- id: config-init-system
+  name: config-init (from PATH)
+  description: Recreate root symlinks into .config/ using a config-init binary already installed on PATH.
+  entry: config-init init
+  language: system
+  always_run: true
+  pass_filenames: false
+  stages: [post-checkout, post-merge, post-rewrite, manual]
