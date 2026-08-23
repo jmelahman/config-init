@@ -25,4 +25,14 @@ if [ "${GITHUB_REF_TYPE:-}" = "tag" ] && [ "${GITHUB_REF_NAME:-}" != "v$ver" ]; 
     echo "check-version: tag ${GITHUB_REF_NAME:-?} != v$ver" >&2
     exit 1
 fi
-echo "check-version: OK ($ver)"
+
+# The solod pin is centralized in hatch_build.py; the module files must
+# agree with it.
+solod=$(sed -n 's/^SOLOD_VERSION = "\(.*\)"$/\1/p' hatch_build.py)
+for f in so/go.mod so/gotest.mod; do
+    if ! grep -q "solod.dev $solod" "$f"; then
+        echo "check-version: $f does not pin solod.dev $solod" >&2
+        exit 1
+    fi
+done
+echo "check-version: OK ($ver, solod $solod)"
