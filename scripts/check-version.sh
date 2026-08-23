@@ -35,4 +35,15 @@ for f in so/go.mod so/gotest.mod; do
         exit 1
     fi
 done
+# build-constraints.txt is generated from the direct pins
+# (scripts/gen-build-constraints.sh); fail if it went stale.
+for pin in $(sed -n 's/^requires = \[\(.*\)\]$/\1/p' pyproject.toml | tr ',' '\n' | tr -d ' "') \
+    "$(sed -n 's/^GO_BIN_PIN = "\(.*\)"$/\1/p' hatch_build.py)" \
+    "$(sed -n 's/^ZIGLANG_PIN = "\(.*\)"$/\1/p' hatch_build.py)"; do
+    if ! grep -q "^$pin " build-constraints.txt && ! grep -q "^$pin\$" build-constraints.txt; then
+        echo "check-version: build-constraints.txt is stale (missing $pin); run scripts/gen-build-constraints.sh" >&2
+        exit 1
+    fi
+done
+
 echo "check-version: OK ($ver, solod $solod)"

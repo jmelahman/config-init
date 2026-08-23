@@ -23,7 +23,7 @@ jobs:
           cache: false
       - run: scripts/check-version.sh
       - run: go install "solod.dev/cmd/so@$(sed -n 's/^SOLOD_VERSION = "\(.*\)"$/\1/p' hatch_build.py)"
-      - run: PATH="$(go env GOPATH)/bin:$PATH" make check
+      - run: PATH="$(go env GOPATH)/bin:$PATH" scripts/check
   goreleaser:
     needs: check
     runs-on: ubuntu-latest
@@ -90,9 +90,10 @@ jobs:
           MATRIX_SDIST: ${{ matrix.target.sdist }}
         run: |
           if [ "$MATRIX_SDIST" = "true" ]; then
-            uv build --sdist
+            uv build --sdist --build-constraints build-constraints.txt
           else
-            GOOS="$MATRIX_GOOS" GOARCH="$MATRIX_GOARCH" uv build --wheel
+            GOOS="$MATRIX_GOOS" GOARCH="$MATRIX_GOARCH" \
+              uv build --wheel --build-constraints build-constraints.txt
           fi
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # ratchet:actions/upload-artifact@v6.0.0
         with:

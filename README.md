@@ -151,12 +151,12 @@ instead of git materializing them as plain text files containing a path.
 The source is written once, in the Solod subset of Go, and builds with either toolchain:
 
 ```sh
-make build      # so build -o config-init ./so   (native binary, needs solod + a C compiler)
-make test       # so test ./so
-make sanitize   # solod tests under ASan/UBSan
-make gobuild    # go build .                     (Go binary via gocompat, needs only Go)
-make gotest     # the same test suite against gocompat
-make check      # all of the above
+so build -o config-init ./so             # native binary (needs solod + a C compiler)
+so test ./so                             # test suite under solod
+so test -sanitize ./so                   # solod tests under ASan/UBSan
+go build .                               # Go binary via gocompat (needs only Go)
+go -C so run -modfile=gotest.mod ./test  # the same test suite against gocompat
+scripts/check                            # builds + tests with both, plus version guards
 ```
 
 How the two toolchains coexist:
@@ -186,4 +186,11 @@ truth). The workflow then publishes:
 - PyPI wheels for linux/macOS × amd64/arm64 plus an sdist, built by the hatch hook
   in `hatch_build.py` with the same toolchain.
 
-`make snapshot` dry-runs the GoReleaser artifacts locally.
+Build dependencies are pinned exactly — directly in `pyproject.toml` and
+`hatch_build.py`, transitively (with hashes) in the generated `build-constraints.txt`
+that CI passes to `uv build --build-constraints`. After changing a pin, regenerate it
+with `scripts/gen-build-constraints.sh`; `scripts/check-version.sh` fails when it's
+stale.
+
+`goreleaser release --snapshot --clean --skip=publish` dry-runs the GitHub release
+artifacts locally.

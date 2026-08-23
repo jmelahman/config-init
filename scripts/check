@@ -1,0 +1,15 @@
+#!/bin/sh
+# Build and test with both toolchains, and verify version/pin consistency.
+# Run by the repo's pre-commit hook and the release workflow's check job.
+#
+# The solod toolchain resolves through the nested so/ module (real
+# solod.dev); the plain Go toolchain resolves through the root module
+# (solod.dev replaced by gocompat/). See README "Building from source".
+set -eu
+cd "$(dirname "$0")/.."
+
+scripts/check-version.sh
+echo "check: so build" && so build -o config-init ./so
+echo "check: go build" && go build -o config-init-go .
+echo "check: so test" && so test ./so
+echo "check: go test (gocompat)" && go -C so run -modfile=gotest.mod ./test
