@@ -40,5 +40,3 @@ go.work.sum
 *.whl
 __pycache__/
 
-# Symlinks into .config/, recreated by `config-init init`.
-/.goreleaser.yaml

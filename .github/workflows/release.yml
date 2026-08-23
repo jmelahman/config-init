@@ -49,9 +49,6 @@ jobs:
         with:
           version: "0.12.3"
           enable-cache: false
-      # CI checkouts don't run the post-checkout hook, so recreate the root
-      # symlinks (.goreleaser.yaml lives in .config/) ourselves.
-      - run: go run . init
       - run: go install "solod.dev/cmd/so@$(sed -n 's/^SOLOD_VERSION = "\(.*\)"$/\1/p' hatch_build.py)"
       # zig (via the ziglang PyPI package) for scripts/zigcc cross-compiles,
       # at the version pinned in hatch_build.py.
@@ -64,7 +61,7 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: release --clean
+          args: release --clean --config .config/.goreleaser.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-pypi:

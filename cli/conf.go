@@ -8,15 +8,22 @@ import (
 	"solod.dev/so/strings"
 )
 
-// confFileName is the ignore configuration read from .config/ in the
-// repository and from ${XDG_CONFIG_HOME:-~/.config}/ for the user. It is
-// never symlinked into the repository root.
+// confFileName is the configuration read from .config/ in the repository
+// and from ${XDG_CONFIG_HOME:-~/.config}/ for the user. It is never
+// symlinked into the repository root.
 //
-// Format, one rule per line: a root-level entry name or shell glob
-// (".env", ".cla*") that `config-init migrate` should leave alone, or
-// "!name" to un-ignore an entry (overriding earlier rules and the built-in
-// skip list). "#" starts a comment. The user file loads first, then the
-// repository file; the last matching rule wins.
+// Format, one rule per line:
+//   - a root-level entry name or shell glob (".env", ".cla*") that
+//     `config-init migrate` should leave alone;
+//   - "!name" to un-ignore an entry (overriding earlier rules and the
+//     built-in skip list);
+//   - "nolink name" for entries that live in .config/ but should not be
+//     symlinked into the root (tools are pointed at the .config/ path
+//     directly). Repository file only: a user-level nolink would silently
+//     break repositories that expect their links.
+//
+// "#" starts a comment. The user file loads first, then the repository
+// file; the last matching ignore rule wins.
 const confFileName = "config-init.conf"
 
 type ignoreRule struct {
@@ -30,10 +37,14 @@ type ignoreRule struct {
 var ignoreRules [maxEntries]ignoreRule
 var nIgnoreRules int
 
+var nolinkRules [maxEntries]string
+var nNolinkRules int
+
 // loadIgnoreRules reads the user-level and repository-level config files.
 // Must be called with the repository root as the working directory.
 func loadIgnoreRules(a mem.Allocator) {
 	nIgnoreRules = 0
+	nNolinkRules = 0
 	base := os.Getenv("XDG_CONFIG_HOME")
 	if base == "" {
 		home := os.Getenv("HOME")
@@ -42,12 +53,12 @@ func loadIgnoreRules(a mem.Allocator) {
 		}
 	}
 	if base != "" {
-		loadConfFile(a, base+"/"+confFileName)
+		loadConfFile(a, base+"/"+confFileName, false)
 	}
-	loadConfFile(a, configDir+"/"+confFileName)
+	loadConfFile(a, configDir+"/"+confFileName, true)
 }
 
-func loadConfFile(a mem.Allocator, fname string) {
+func loadConfFile(a mem.Allocator, fname string, repoLevel bool) {
 	data, err := os.ReadFile(a, fname)
 	if err != nil {
 		return
@@ -57,6 +68,15 @@ func loadConfFile(a mem.Allocator, fname string) {
 		t := strings.TrimSpace(ln)
 		if t == "" || strings.HasPrefix(t, "#") {
 			continue
+		}
+		nolink := false
+		if strings.HasPrefix(t, "nolink ") || strings.HasPrefix(t, "nolink\t") {
+			nolink = true
+			t = strings.TrimSpace(t[6:])
+			if !repoLevel {
+				fmt.Fprintf(os.Stderr, "config-init: %s: nolink is only honored in the repository config; ignoring %s\n", fname, t)
+				continue
+			}
 		}
 		neg := false
 		if strings.HasPrefix(t, "!") {
@@ -74,11 +94,30 @@ func loadConfFile(a mem.Allocator, fname string) {
 			fmt.Fprintf(os.Stderr, "config-init: %s: ignoring malformed pattern %s\n", fname, t)
 			continue
 		}
+		if nolink {
+			if nNolinkRules < maxEntries {
+				nolinkRules[nNolinkRules] = t
+				nNolinkRules++
+			}
+			continue
+		}
 		if nIgnoreRules < maxEntries {
 			ignoreRules[nIgnoreRules] = ignoreRule{pattern: t, negate: neg}
 			nIgnoreRules++
 		}
 	}
+}
+
+// isNolink reports whether a .config/ entry should be left without a root
+// symlink; tools are expected to reference the .config/ path directly.
+func isNolink(name string) bool {
+	for i := range nNolinkRules {
+		ok, merr := path.Match(nolinkRules[i], name)
+		if merr == nil && ok {
+			return true
+		}
+	}
+	return false
 }
 
 // isIgnored reports whether the automatic scan should skip a root entry.

@@ -102,6 +102,13 @@ The user file loads first, then the repository file, and the last matching rule 
 a repository can override a user-level ignore (and any rule overrides the built-in skip
 list). The file itself is never symlinked into the root.
 
+A `nolink <name>` line (repository file only) marks an entry that lives in `.config/`
+but gets no root symlink — for tools you point at the `.config/` path explicitly
+instead. This repo does it for its own goreleaser config: the release workflow passes
+`--config .config/.goreleaser.yaml`, so no symlink is needed. `init` removes a
+previously created root symlink when its entry becomes `nolink`, so existing checkouts
+transition on their own.
+
 ### A note on previously tracked files
 
 For a migrated *directory*, `git add -A` records the moves and the new root symlink stays
@@ -192,5 +199,6 @@ that CI passes to `uv build --build-constraints`. After changing a pin, regenera
 with `scripts/gen-build-constraints.sh`; `scripts/check-version.sh` fails when it's
 stale.
 
-`goreleaser release --snapshot --clean --skip=publish` dry-runs the GitHub release
+`goreleaser release --snapshot --clean --skip=publish --config .config/.goreleaser.yaml`
+dry-runs the GitHub release
 artifacts locally.

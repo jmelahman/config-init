@@ -27,5 +27,8 @@ func main() {
 		{Name: "TestMigrateDryRun", F: TestMigrateDryRun},
 		{Name: "TestGitignoreCompanionPatterns", F: TestGitignoreCompanionPatterns},
 		{Name: "TestMigrateConflict", F: TestMigrateConflict},
+		{Name: "TestNolinkSkipsAndCleansUp", F: TestNolinkSkipsAndCleansUp},
+		{Name: "TestNolinkMigrate", F: TestNolinkMigrate},
+		{Name: "TestNolinkUserLevelRejected", F: TestNolinkUserLevelRejected},
 	})
 }

@@ -33,9 +33,16 @@ func cmdInit(a mem.Allocator, dryRun bool) int {
 		fmt.Fprintf(os.Stderr, "config-init: cannot read %s: %s\n", configDir, rerr.Error())
 		return 1
 	}
+	loadIgnoreRules(a)
 	fails := 0
 	for _, e := range entries {
 		if e.Name == confFileName {
+			continue
+		}
+		if isNolink(e.Name) {
+			if !removeNolinkLink(e.Name, dryRun) {
+				fails++
+			}
 			continue
 		}
 		r := ensureLink(e.Name, dryRun)
@@ -84,4 +91,31 @@ func ensureLink(name string, dryRun bool) linkResult {
 	}
 	fmt.Printf("config-init: linked %s -> %s\n", name, target)
 	return result
+}
+
+// removeNolinkLink cleans up a root symlink that config-init previously
+// created for an entry now marked nolink, so checkouts transition on their
+// own. Anything at the root path that isn't exactly our symlink is left
+// alone. Returns false only on a failed removal.
+func removeNolinkLink(name string, dryRun bool) bool {
+	target := configDir + "/" + name
+	fi, err := os.Lstat(name)
+	if err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		return true
+	}
+	var buf [os.MaxPathLen]byte
+	dest, rerr := os.Readlink(buf[:], name)
+	if rerr != nil || dest != target {
+		return true
+	}
+	if dryRun {
+		fmt.Printf("config-init: [dry-run] would remove %s (nolink)\n", name)
+		return true
+	}
+	if os.Remove(name) != nil {
+		fmt.Fprintf(os.Stderr, "config-init: cannot remove %s (nolink)\n", name)
+		return false
+	}
+	fmt.Printf("config-init: removed %s (nolink: reference %s directly)\n", name, target)
+	return true
 }

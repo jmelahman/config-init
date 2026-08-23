@@ -160,6 +160,12 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int
 			if e.Name == confFileName {
 				continue
 			}
+			if isNolink(e.Name) {
+				if !removeNolinkLink(e.Name, dryRun) {
+					fails++
+				}
+				continue
+			}
 			if nNames < maxEntries {
 				names[nNames] = e.Name
 				nNames++
@@ -171,6 +177,9 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int
 	}
 	if dryRun {
 		for i := range nMigrated {
+			if isNolink(migrated[i]) {
+				continue
+			}
 			if !containsString(names[:nNames], migrated[i]) && nNames < maxEntries {
 				names[nNames] = migrated[i]
 				nNames++
