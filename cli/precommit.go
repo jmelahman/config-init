@@ -9,7 +9,7 @@ import (
 )
 
 const hookRepoURL = "https://github.com/jmelahman/config-init"
-const hookRev = "v0.1.0"
+const hookRev = "v0.1.1"
 const preCommitYAML = ".pre-commit-config.yaml"
 const preCommitYML = ".pre-commit-config.yml"
 
@@ -23,7 +23,7 @@ const hookTypesLine = "default_install_hook_types: [pre-commit, post-checkout, p
 const freshPreCommitConfig = `default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
 repos:
   - repo: https://github.com/jmelahman/config-init
-    rev: v0.1.0
+    rev: v0.1.1
     hooks:
       - id: config-init
 `

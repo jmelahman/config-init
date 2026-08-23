@@ -83,7 +83,7 @@ secrets like `.env`.
 default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
 repos:
   - repo: https://github.com/jmelahman/config-init
-    rev: v0.1.0
+    rev: v0.1.1
     hooks:
       - id: config-init
 ```

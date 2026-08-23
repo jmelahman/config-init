@@ -14,7 +14,7 @@ import (
 )
 
 // Version is the config-init release version.
-const Version = "0.1.0"
+const Version = "0.1.1"
 
 // configDir is where configuration entries live, relative to the repo root.
 const configDir = ".config"
