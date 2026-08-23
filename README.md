@@ -69,11 +69,45 @@ installed already.
 alone (and nothing is printed), stale links are repaired, and real files or directories are
 never touched — conflicts are reported and the exit code is non-zero.
 
-Never migrated: `.git`, `.gitignore`, `.gitattributes`, `.gitmodules`, `.github`,
-`.pre-commit-config.yaml`, `.pre-commit-hooks.yaml` — git, GitHub, and pre-commit read
-these from the root before any hook can run. Skipped by the automatic scan (but migratable
-explicitly): caches and machine state like `.venv`, `.mypy_cache`, `.terraform`, and
-secrets like `.env`.
+### What migrate won't touch
+
+- **Never migratable**: `.git`, `.gitignore`, `.gitattributes`, `.gitmodules` — git reads
+  these from the worktree before anything can run; a symlink here would break the
+  mechanism that restores symlinks.
+- **Guarded (requires naming explicitly plus `--force`)**: `.github`,
+  `.pre-commit-config.yaml`/`.yml`, `.pre-commit-hooks.yaml` — these bootstrap a fresh
+  clone before any hook can run `config-init init`. Only force-migrate them if you know
+  your hooks come from somewhere else.
+- **Skipped by the scan (migratable by naming explicitly)**: machine state and secrets
+  (`.venv`, `.mypy_cache`, `.terraform`, `.env`, ...) and configs that CI services read
+  from hook-less checkouts (`.goreleaser.yaml`, `.golangci.yml`, `.codecov.yml`, ...).
+  If you migrate a CI-read config, add a `config-init init` step (or `go run . init`)
+  to the workflow before the tool that needs it.
+
+### Ignore configuration
+
+`.config/config-init.conf` (per repository, committed) and
+`${XDG_CONFIG_HOME:-~/.config}/config-init.conf` (per user) tune what the automatic scan
+ignores — one root-level name or shell glob per line:
+
+```
+# don't migrate the IDE config in this repo
+.vscode
+.idea*
+# do migrate .env here even though it's skipped by default
+!.env
+```
+
+The user file loads first, then the repository file, and the last matching rule wins, so
+a repository can override a user-level ignore (and any rule overrides the built-in skip
+list). The file itself is never symlinked into the root.
+
+### A note on previously tracked files
+
+For a migrated *directory*, `git add -A` records the moves and the new root symlink stays
+untracked (it's gitignored). A previously tracked *file* is different: git keeps tracking
+the root path even though it's now an ignored symlink, so also run
+`git rm --cached <name>` — migrate prints the exact commands when this applies.
 
 ## Pre-commit hook
 
@@ -83,7 +117,7 @@ secrets like `.env`.
 default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
 repos:
   - repo: https://github.com/jmelahman/config-init
-    rev: v0.1.1
+    rev: v0.2.0
     hooks:
       - id: config-init
 ```

@@ -14,7 +14,7 @@ import (
 )
 
 // Version is the config-init release version.
-const Version = "0.1.1"
+const Version = "0.2.0"
 
 // configDir is where configuration entries live, relative to the repo root.
 const configDir = ".config"
@@ -37,6 +37,15 @@ Usage:
 
 Flags:
   -n, --dry-run                    Print planned actions without changing anything.
+  -f, --force                      With explicit entries: migrate bootstrap files that
+                                   are guarded by default (.github, .pre-commit-config.yaml).
+
+Configuration:
+  .config/config-init.conf (repository) and
+  ${XDG_CONFIG_HOME:-~/.config}/config-init.conf (user) list root-level
+  names or globs the automatic scan should ignore, one per line.
+  "!name" opts an entry back in (overrides earlier rules and built-in
+  defaults; the last matching rule wins). "#" starts a comment.
 `
 
 // arenaBuf backs every allocation the program makes; freed wholesale on exit.
@@ -51,11 +60,16 @@ func Run(args []string) int {
 	}
 	cmd := args[1]
 	dryRun := false
+	force := false
 	var extras [maxEntries]string
 	nExtras := 0
 	for _, arg := range args[2:] {
 		if arg == "--dry-run" || arg == "-n" {
 			dryRun = true
+			continue
+		}
+		if arg == "--force" || arg == "-f" {
+			force = true
 			continue
 		}
 		if len(arg) > 0 && arg[0] == '-' {
@@ -88,7 +102,7 @@ func Run(args []string) int {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 			return 1
 		}
-		return cmdMigrate(&arena, extras[:nExtras], dryRun)
+		return cmdMigrate(&arena, extras[:nExtras], dryRun, force)
 	}
 	fmt.Fprintf(os.Stderr, "config-init: unknown command %s (try `config-init help`)\n", cmd)
 	return 2

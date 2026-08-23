@@ -22,6 +22,11 @@ func enterTempRepo() bool {
 	if os.Chdir(dir) != nil {
 		return false
 	}
+	// Point the user-level config lookup at the (empty) temp repo so a
+	// developer's real ~/.config/config-init.conf can't leak into tests.
+	if os.Setenv("XDG_CONFIG_HOME", dir) != nil {
+		return false
+	}
 	return os.Mkdir(".git", 0o755) == nil
 }
 
@@ -31,6 +36,10 @@ func runCLI(sub string) int {
 
 func runCLI2(sub, arg string) int {
 	return cli.Run([]string{"config-init", sub, arg})
+}
+
+func runCLI3(sub, arg1, arg2 string) int {
+	return cli.Run([]string{"config-init", sub, arg1, arg2})
 }
 
 // isLinkTo reports whether name is a symlink pointing exactly at want.

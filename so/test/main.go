@@ -9,6 +9,12 @@ import (
 
 func main() {
 	testing.RunTests("so", os.Args, []testing.Test{
+		{Name: "TestConfIgnore", F: TestConfIgnore},
+		{Name: "TestConfNegateAndGlob", F: TestConfNegateAndGlob},
+		{Name: "TestUserConfAndRepoOverride", F: TestUserConfAndRepoOverride},
+		{Name: "TestConfFileNeverLinked", F: TestConfFileNeverLinked},
+		{Name: "TestForceGuarded", F: TestForceGuarded},
+		{Name: "TestCIConfigsSkippedByDefault", F: TestCIConfigsSkippedByDefault},
 		{Name: "TestInitNoConfigDir", F: TestInitNoConfigDir},
 		{Name: "TestInitCreatesAndRepairsLinks", F: TestInitCreatesAndRepairsLinks},
 		{Name: "TestInitConflict", F: TestInitConflict},

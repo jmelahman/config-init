@@ -35,6 +35,9 @@ func cmdInit(a mem.Allocator, dryRun bool) int {
 	}
 	fails := 0
 	for _, e := range entries {
+		if e.Name == confFileName {
+			continue
+		}
 		r := ensureLink(e.Name, dryRun)
 		if r == linkConflict || r == linkError {
 			fails++

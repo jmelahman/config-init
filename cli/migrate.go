@@ -7,26 +7,42 @@ import (
 	"solod.dev/so/strings"
 )
 
-// protectedNames must stay at the repository root: git reads them directly
-// from the worktree before any hook can run, GitHub reads .github/ from the
-// tree, and pre-commit needs its config at the root to bootstrap the hook
-// that recreates the symlinks.
-var protectedNames = []string{
+// hardProtected entries make the symlink scheme itself work: git reads
+// them directly from the worktree before anything else can run. They are
+// never migratable.
+var hardProtected = []string{
 	".git",
 	".gitignore",
 	".gitattributes",
 	".gitmodules",
-	".github",
 	".config",
+}
+
+// guardedDefaults bootstrap the repository on a fresh clone before any
+// hook can recreate symlinks: pre-commit needs its config at the root to
+// run `config-init init` at all, and GitHub reads .github/ from the tree.
+// Migrating one requires naming it explicitly AND passing --force.
+var guardedDefaults = []string{
+	".github",
 	".pre-commit-config.yaml",
 	".pre-commit-config.yml",
 	".pre-commit-hooks.yaml",
 }
 
-// skipByDefault holds machine state or secrets rather than shareable
-// configuration, so the automatic scan leaves it alone. Naming one of these
-// explicitly (`config-init migrate .env`) still migrates it.
+// skipByDefault holds entries the automatic scan leaves alone: machine
+// state and secrets rather than shareable configuration, plus configs that
+// CI services read from hook-less checkouts (a migrated .goreleaser.yaml
+// is invisible to goreleaser-action unless the workflow runs
+// `config-init init`). Naming one explicitly (`config-init migrate .env`)
+// still migrates it, and a config-init.conf rule like "!.env" opts it back
+// into the scan.
 var skipByDefault = []string{
+	".goreleaser.yaml",
+	".goreleaser.yml",
+	".golangci.yaml",
+	".golangci.yml",
+	".codecov.yml",
+	".readthedocs.yaml",
 	".env",
 	".venv",
 	".direnv",
@@ -68,7 +84,12 @@ const (
 // gitignores the links, and registers the pre-commit hook. With explicit
 // entries it migrates exactly those; otherwise it scans the root for
 // dotfiles that aren't protected, skipped, or already symlinks.
-func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool) int {
+func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int {
+	loadIgnoreRules(a)
+	if force && len(explicit) == 0 {
+		fmt.Fprintf(os.Stderr, "config-init: --force requires naming the entries to migrate\n")
+		return 2
+	}
 	fi, err := os.Lstat(configDir)
 	if err != nil {
 		if dryRun {
@@ -91,7 +112,7 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool) int {
 
 	if len(explicit) > 0 {
 		for _, name := range explicit {
-			r := migrateEntry(name, dryRun, true)
+			r := migrateEntry(name, dryRun, true, force)
 			if r == moveFailed {
 				fails++
 			} else if r == moveMoved && nMigrated < maxEntries {
@@ -112,10 +133,13 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool) int {
 			if e.Type&os.ModeSymlink != 0 {
 				continue
 			}
-			if containsString(protectedNames, e.Name) || containsString(skipByDefault, e.Name) {
+			if containsString(hardProtected, e.Name) || containsString(guardedDefaults, e.Name) {
 				continue
 			}
-			r := migrateEntry(e.Name, dryRun, false)
+			if isIgnored(e.Name) {
+				continue
+			}
+			r := migrateEntry(e.Name, dryRun, false, false)
 			if r == moveFailed {
 				fails++
 			} else if r == moveMoved && nMigrated < maxEntries {
@@ -133,6 +157,9 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool) int {
 	entries, rerr := os.ReadDir(a, configDir)
 	if rerr == nil {
 		for _, e := range entries {
+			if e.Name == confFileName {
+				continue
+			}
 			if nNames < maxEntries {
 				names[nNames] = e.Name
 				nNames++
@@ -152,6 +179,10 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool) int {
 	}
 
 	if nNames == 0 && nMigrated == 0 {
+		if fails > 0 {
+			fmt.Fprintf(os.Stderr, "config-init: completed with %d problems\n", fails)
+			return 1
+		}
 		fmt.Printf("config-init: nothing to migrate\n")
 		return 0
 	}
@@ -184,6 +215,11 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool) int {
 		fmt.Printf("config-init: dry run complete; re-run without --dry-run to apply\n")
 		return 0
 	}
+	// git keeps tracking a previously tracked FILE at its root path even
+	// though the path is now an ignored symlink (ignore patterns don't
+	// apply to tracked paths); directories are fine because their tracked
+	// paths moved away. Point at the affected entries.
+	movedFileHint(nMigrated, migrated[:])
 	fmt.Print(`config-init: done. Suggested follow-up:
   git add -A && git commit
   pre-commit install  # installs post-checkout/post-merge hooks too
@@ -191,15 +227,40 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool) int {
 	return 0
 }
 
+func movedFileHint(nMigrated int, migrated []string) {
+	printed := false
+	for i := range nMigrated {
+		dest := configDir + "/" + migrated[i]
+		fi, err := os.Lstat(dest)
+		if err != nil || fi.IsDir() {
+			continue
+		}
+		if !printed {
+			fmt.Printf("config-init: if these files were tracked by git, also untrack the root symlinks:\n")
+			printed = true
+		}
+		fmt.Printf("  git rm --cached %s\n", migrated[i])
+	}
+}
+
 // migrateEntry moves one root entry into .config/. The symlink back is
 // created later by the shared link pass.
-func migrateEntry(name string, dryRun bool, explicit bool) moveResult {
+func migrateEntry(name string, dryRun bool, explicit bool, force bool) moveResult {
+	_ = explicit
 	if name == "." || name == ".." || strings.IndexByte(name, '/') >= 0 {
 		fmt.Fprintf(os.Stderr, "config-init: %s is not a root-level entry name\n", name)
 		return moveFailed
 	}
-	if explicit && containsString(protectedNames, name) {
-		fmt.Fprintf(os.Stderr, "config-init: %s must stay at the repository root; skipping\n", name)
+	if name == confFileName {
+		fmt.Fprintf(os.Stderr, "config-init: %s is config-init's own configuration; skipping\n", name)
+		return moveFailed
+	}
+	if containsString(hardProtected, name) {
+		fmt.Fprintf(os.Stderr, "config-init: %s is required at the repository root and cannot be migrated\n", name)
+		return moveFailed
+	}
+	if containsString(guardedDefaults, name) && !force {
+		fmt.Fprintf(os.Stderr, "config-init: %s bootstraps the repository before any hook can run; pass --force to migrate it anyway\n", name)
 		return moveFailed
 	}
 	fi, err := os.Lstat(name)
