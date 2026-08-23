@@ -5,5 +5,5 @@ repos:
         name: build and test with both toolchains
         entry: make check
         language: system
-        files: '(\.go|go\.mod|so\.mod|go\.sum|so\.sum)$'
+        files: '(\.go|\.mod|\.sum)$'
         pass_filenames: false
