@@ -156,7 +156,7 @@ so test ./so                             # test suite under solod
 so test -sanitize ./so                   # solod tests under ASan/UBSan
 go build .                               # Go binary via gocompat (needs only Go)
 go -C so run -modfile=gotest.mod ./test  # the same test suite against gocompat
-scripts/check                            # builds + tests with both, plus version guards
+prek run --all-files                     # all of the above, as defined in .pre-commit-config.yaml
 ```
 
 How the two toolchains coexist:
