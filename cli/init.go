@@ -37,6 +37,11 @@ func cmdInit(a mem.Allocator, dryRun bool) int {
 	fails := 0
 	for _, e := range entries {
 		if e.Name == confFileName {
+			// Older config-init versions symlinked the conf file into the
+			// root like any other entry; clean that up.
+			if !removeNolinkLink(e.Name, dryRun) {
+				fails++
+			}
 			continue
 		}
 		if isNolink(e.Name) {

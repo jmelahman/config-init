@@ -124,6 +124,15 @@ func TestConfFileNeverLinked(t *testing.T) {
 	if exists("config-init.conf") {
 		t.Error(".config/config-init.conf must not be symlinked into the root")
 	}
+	// A stray root symlink left by an older config-init gets cleaned up.
+	os.Symlink(".config/config-init.conf", "config-init.conf")
+	if runCLI("init") != 0 {
+		t.Fatal("init failed on stray conf symlink")
+		return
+	}
+	if exists("config-init.conf") {
+		t.Error("init should remove a stray root conf symlink")
+	}
 	ignore := readFile(".gitignore")
 	if strings.Contains(ignore, "config-init.conf") {
 		t.Error(".gitignore should not mention config-init.conf")

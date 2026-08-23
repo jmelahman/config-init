@@ -157,10 +157,7 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int
 	entries, rerr := os.ReadDir(a, configDir)
 	if rerr == nil {
 		for _, e := range entries {
-			if e.Name == confFileName {
-				continue
-			}
-			if isNolink(e.Name) {
+			if e.Name == confFileName || isNolink(e.Name) {
 				if !removeNolinkLink(e.Name, dryRun) {
 					fails++
 				}
