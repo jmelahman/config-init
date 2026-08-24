@@ -27,7 +27,7 @@ uv tool install config-init   # or: pip install config-init
 ```
 
 Small static binaries (~200KB, instant startup) for Linux and macOS, also on
-[GitHub releases](https://github.com/jmelahman/config-init/releases). POSIX only.
+[GitHub releases](https://github.com/jmelahman/config-init/releases).
 The pre-commit hook (below) needs no install at all.
 
 ## Migrate an existing repository
