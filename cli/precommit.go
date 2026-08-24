@@ -8,8 +8,8 @@ import (
 	"solod.dev/so/strings"
 )
 
-const hookRepoURL = "https://github.com/jmelahman/config-init"
-const hookRev = "v0.2.0"
+const hookRepoURL = "https://github.com/jmelahman/undot"
+const hookRev = "v0.3.0"
 const preCommitYAML = ".pre-commit-config.yaml"
 const preCommitYML = ".pre-commit-config.yml"
 
@@ -22,13 +22,13 @@ const hookTypesLine = "default_install_hook_types: [pre-commit, post-checkout, p
 
 const freshPreCommitConfig = `default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
 repos:
-  - repo: https://github.com/jmelahman/config-init
-    rev: v0.2.0
+  - repo: https://github.com/jmelahman/undot
+    rev: v0.3.0
     hooks:
-      - id: config-init
+      - id: undot
 `
 
-// ensurePreCommitConfig registers the config-init hook in the repository's
+// ensurePreCommitConfig registers the undot hook in the repository's
 // pre-commit config, creating the file if needed. Edits are plain text: the
 // repo block is inserted before the first existing `- repo:` entry, reusing
 // its indentation. Returns 1 if changed, 0 if already configured, -1 on error.
@@ -46,23 +46,23 @@ func ensurePreCommitConfig(a mem.Allocator, dryRun bool) int {
 
 	if err != nil {
 		if dryRun {
-			fmt.Printf("config-init: [dry-run] would create %s with the config-init hook\n", preCommitYAML)
+			fmt.Printf("undot: [dry-run] would create %s with the undot hook\n", preCommitYAML)
 			return 1
 		}
 		if werr := os.WriteFile(preCommitYAML, []byte(freshPreCommitConfig), 0o644); werr != nil {
-			fmt.Fprintf(os.Stderr, "config-init: cannot write %s: %s\n", preCommitYAML, werr.Error())
+			fmt.Fprintf(os.Stderr, "undot: cannot write %s: %s\n", preCommitYAML, werr.Error())
 			return -1
 		}
-		fmt.Printf("config-init: created %s\n", preCommitYAML)
+		fmt.Printf("undot: created %s\n", preCommitYAML)
 		return 1
 	}
 
 	content := string(data)
-	if strings.Contains(content, hookRepoURL) || strings.Contains(content, "id: config-init") {
+	if strings.Contains(content, hookRepoURL) || strings.Contains(content, "id: undot") {
 		return 0
 	}
 	if dryRun {
-		fmt.Printf("config-init: [dry-run] would add the config-init hook to %s\n", path)
+		fmt.Printf("undot: [dry-run] would add the undot hook to %s\n", path)
 		return 1
 	}
 
@@ -125,10 +125,10 @@ func ensurePreCommitConfig(a mem.Allocator, dryRun bool) int {
 	}
 
 	if werr := os.WriteFile(path, buf.Bytes(), 0o644); werr != nil {
-		fmt.Fprintf(os.Stderr, "config-init: cannot write %s: %s\n", path, werr.Error())
+		fmt.Fprintf(os.Stderr, "undot: cannot write %s: %s\n", path, werr.Error())
 		return -1
 	}
-	fmt.Printf("config-init: added the config-init hook to %s\n", path)
+	fmt.Printf("undot: added the undot hook to %s\n", path)
 	return 1
 }
 
@@ -140,5 +140,5 @@ func writeRepoBlock(buf *bytes.Buffer, indent string) {
 	buf.WriteString(indent)
 	buf.WriteString("  hooks:\n")
 	buf.WriteString(indent)
-	buf.WriteString("    - id: config-init\n")
+	buf.WriteString("    - id: undot\n")
 }

@@ -1,9 +1,9 @@
-// Package cli implements the config-init command-line interface.
+// Package cli implements the undot command-line interface.
 //
-// config-init keeps a repository's root directory free of tool configuration
+// undot keeps a repository's root directory free of tool configuration
 // clutter: config files and directories (.claude/, .cursor/, .yarn/, ...) are
 // stored under .config/ and symlinked back into the root. The symlinks are
-// gitignored and recreated on checkout by the `config-init init` pre-commit
+// gitignored and recreated on checkout by the `undot link` pre-commit
 // hook, so only .config/ is tracked.
 package cli
 
@@ -13,8 +13,8 @@ import (
 	"solod.dev/so/os"
 )
 
-// Version is the config-init release version.
-const Version = "0.2.0"
+// Version is the undot release version.
+const Version = "0.3.0"
 
 // configDir is where configuration entries live, relative to the repo root.
 const configDir = ".config"
@@ -22,27 +22,27 @@ const configDir = ".config"
 // Package-level string constants can't be built by concatenation: the
 // transpiler emits `+` as a runtime operation, which C static initializers
 // don't allow. Keep them as single literals.
-const usageText = `config-init: declutter a repository root by storing configs in .config/
+const usageText = `undot: declutter a repository root by storing configs in .config/
 and symlinking them back into the root.
 
 Usage:
-  config-init init                 Create root symlinks for every entry in .config/.
-                                   Safe to re-run; intended as a post-checkout hook.
-  config-init migrate [entry...]   Move root config entries into .config/, link them
-                                   back, gitignore the links, and register the
-                                   pre-commit hook. With no arguments, migrates all
-                                   root dotfiles except git-owned and cache entries.
-  config-init version              Print the version.
-  config-init help                 Print this help.
+  undot link                Create root symlinks for every entry in .config/.
+                            Safe to re-run; intended as a post-checkout hook.
+  undot migrate [entry...]  Move root config entries into .config/, link them
+                            back, gitignore the links, and register the
+                            pre-commit hook. With no arguments, migrates all
+                            root dotfiles except git-owned and cache entries.
+  undot version             Print the version.
+  undot help                Print this help.
 
 Flags:
-  -n, --dry-run                    Print planned actions without changing anything.
-  -f, --force                      With explicit entries: migrate bootstrap files that
-                                   are guarded by default (.github, .pre-commit-config.yaml).
+  -n, --dry-run             Print planned actions without changing anything.
+  -f, --force               With explicit entries: migrate bootstrap files that
+                            are guarded by default (.github, .pre-commit-config.yaml).
 
 Configuration:
-  .config/config-init.conf (repository) and
-  ${XDG_CONFIG_HOME:-~/.config}/config-init.conf (user) list root-level
+  .config/undot.conf (repository) and
+  ${XDG_CONFIG_HOME:-~/.config}/undot/undot.conf (user) list root-level
   names or globs the automatic scan should ignore, one per line.
   "!name" opts an entry back in (overrides earlier rules and built-in
   defaults; the last matching rule wins). "#" starts a comment.
@@ -73,11 +73,11 @@ func Run(args []string) int {
 			continue
 		}
 		if len(arg) > 0 && arg[0] == '-' {
-			fmt.Fprintf(os.Stderr, "config-init: unknown flag %s\n", arg)
+			fmt.Fprintf(os.Stderr, "undot: unknown flag %s\n", arg)
 			return 2
 		}
 		if nExtras >= maxEntries {
-			fmt.Fprintf(os.Stderr, "config-init: too many arguments\n")
+			fmt.Fprintf(os.Stderr, "undot: too many arguments\n")
 			return 2
 		}
 		extras[nExtras] = cleanEntryArg(arg)
@@ -89,14 +89,14 @@ func Run(args []string) int {
 		fmt.Print(usageText)
 		return 0
 	case "version", "--version", "-V":
-		fmt.Printf("config-init %s\n", Version)
+		fmt.Printf("undot %s\n", Version)
 		return 0
-	case "init":
+	case "link":
 		if err := chdirRepoRoot(); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 			return 1
 		}
-		return cmdInit(&arena, dryRun)
+		return cmdLink(&arena, dryRun)
 	case "migrate":
 		if err := chdirRepoRoot(); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
@@ -104,6 +104,6 @@ func Run(args []string) int {
 		}
 		return cmdMigrate(&arena, extras[:nExtras], dryRun, force)
 	}
-	fmt.Fprintf(os.Stderr, "config-init: unknown command %s (try `config-init help`)\n", cmd)
+	fmt.Fprintf(os.Stderr, "undot: unknown command %s (try `undot help`)\n", cmd)
 	return 2
 }

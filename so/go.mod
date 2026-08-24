@@ -3,19 +3,19 @@
 // produces a functional binary; this nested module builds the same cli
 // package against the real solod.dev instead:
 //
-//	so build -o config-init ./so
+//	so build -o undot ./so
 //	so test ./so
 //
 // Replace directives only apply in the main module, so pulling the cli
 // package in from the root via `replace` leaves the root's gocompat
 // replacement inert here.
-module github.com/jmelahman/config-init/so
+module github.com/jmelahman/undot/so
 
 go 1.26
 
 require (
-	github.com/jmelahman/config-init v0.0.0
+	github.com/jmelahman/undot v0.0.0
 	solod.dev v0.3.0
 )
 
-replace github.com/jmelahman/config-init => ../
+replace github.com/jmelahman/undot => ../

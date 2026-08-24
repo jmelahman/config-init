@@ -1,4 +1,4 @@
-// Command config-init keeps a repository's root free of tool configuration
+// Command undot keeps a repository's root free of tool configuration
 // clutter by storing config files under .config/ and symlinking them back
 // into the root.
 package main
@@ -6,7 +6,7 @@ package main
 import (
 	"solod.dev/so/os"
 
-	"github.com/jmelahman/config-init/cli"
+	"github.com/jmelahman/undot/cli"
 )
 
 func main() {

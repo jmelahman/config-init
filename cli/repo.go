@@ -5,7 +5,7 @@ import (
 	"solod.dev/so/os"
 )
 
-var errNotRepo = errors.New("config-init: not inside a git repository (no .git found)")
+var errNotRepo = errors.New("undot: not inside a git repository (no .git found)")
 
 // chdirRepoRoot walks up from the current directory until it finds a .git
 // entry (directory, or file for worktrees/submodules) and makes that

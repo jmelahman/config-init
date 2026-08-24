@@ -1,4 +1,4 @@
-// Package fmt mirrors the subset of solod.dev/so/fmt used by config-init.
+// Package fmt mirrors the subset of solod.dev/so/fmt used by undot.
 package fmt
 
 import (

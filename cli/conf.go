@@ -9,12 +9,12 @@ import (
 )
 
 // confFileName is the configuration read from .config/ in the repository
-// and from ${XDG_CONFIG_HOME:-~/.config}/ for the user. It is never
+// and from ${XDG_CONFIG_HOME:-~/.config}/undot/ for the user. It is never
 // symlinked into the repository root.
 //
 // Format, one rule per line:
 //   - a root-level entry name or shell glob (".env", ".cla*") that
-//     `config-init migrate` should leave alone;
+//     `undot migrate` should leave alone;
 //   - "!name" to un-ignore an entry (overriding earlier rules and the
 //     built-in skip list);
 //   - "nolink name" for entries that live in .config/ but should not be
@@ -24,7 +24,7 @@ import (
 //
 // "#" starts a comment. The user file loads first, then the repository
 // file; the last matching ignore rule wins.
-const confFileName = "config-init.conf"
+const confFileName = "undot.conf"
 
 type ignoreRule struct {
 	pattern string
@@ -53,7 +53,7 @@ func loadIgnoreRules(a mem.Allocator) {
 		}
 	}
 	if base != "" {
-		loadConfFile(a, base+"/"+confFileName, false)
+		loadConfFile(a, base+"/undot/"+confFileName, false)
 	}
 	loadConfFile(a, configDir+"/"+confFileName, true)
 }
@@ -74,7 +74,7 @@ func loadConfFile(a mem.Allocator, fname string, repoLevel bool) {
 			nolink = true
 			t = strings.TrimSpace(t[6:])
 			if !repoLevel {
-				fmt.Fprintf(os.Stderr, "config-init: %s: nolink is only honored in the repository config; ignoring %s\n", fname, t)
+				fmt.Fprintf(os.Stderr, "undot: %s: nolink is only honored in the repository config; ignoring %s\n", fname, t)
 				continue
 			}
 		}
@@ -87,11 +87,11 @@ func loadConfFile(a mem.Allocator, fname string, repoLevel bool) {
 			continue
 		}
 		if strings.IndexByte(t, '/') >= 0 {
-			fmt.Fprintf(os.Stderr, "config-init: %s: ignoring %s (rules match root-level names, not paths)\n", fname, t)
+			fmt.Fprintf(os.Stderr, "undot: %s: ignoring %s (rules match root-level names, not paths)\n", fname, t)
 			continue
 		}
 		if _, merr := path.Match(t, "x"); merr != nil {
-			fmt.Fprintf(os.Stderr, "config-init: %s: ignoring malformed pattern %s\n", fname, t)
+			fmt.Fprintf(os.Stderr, "undot: %s: ignoring malformed pattern %s\n", fname, t)
 			continue
 		}
 		if nolink {

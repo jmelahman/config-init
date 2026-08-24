@@ -1,4 +1,4 @@
-// Package path mirrors the subset of solod.dev/so/path used by config-init.
+// Package path mirrors the subset of solod.dev/so/path used by undot.
 package path
 
 import "path"

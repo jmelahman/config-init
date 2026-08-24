@@ -1,6 +1,6 @@
 # Contributing
 
-config-init is written in [Solod](https://github.com/solod-dev/solod), a strict
+undot is written in [Solod](https://github.com/solod-dev/solod), a strict
 subset of Go that translates to C: release binaries are a few hundred kilobytes,
 start instantly, and have no runtime dependencies.
 
@@ -9,7 +9,7 @@ start instantly, and have no runtime dependencies.
 The source is written once, in the Solod subset, and builds with either toolchain:
 
 ```sh
-so build -o config-init ./so             # native binary (needs solod + a C compiler)
+so build -o undot ./so             # native binary (needs solod + a C compiler)
 so test ./so                             # test suite under solod
 so test -sanitize ./so                   # solod tests under ASan/UBSan
 go build .                               # Go binary via gocompat (needs only Go)
@@ -31,7 +31,7 @@ Install the solod toolchain with `go install solod.dev/cmd/so@latest`.
   (Replace directives only apply in the main module, so the root's gocompat
   replacement is inert during solod builds.)
 
-`go install github.com/jmelahman/config-init@version` is refused by Go because of the
+`go install github.com/jmelahman/undot@version` is refused by Go because of the
 replace directive; that's intentional — use the pre-commit hook, a release binary, or
 `go install ./...` from a checkout.
 

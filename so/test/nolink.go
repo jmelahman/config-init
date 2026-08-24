@@ -23,15 +23,15 @@ func TestNolinkSkipsAndCleansUp(t *testing.T) {
 		return
 	}
 
-	// Marking the migrated entry nolink: init removes the stale link and
+	// Marking the migrated entry nolink: link removes the stale link and
 	// stops creating it.
-	os.WriteFile(".config/config-init.conf", []byte("nolink .myrc\n"), 0o644)
-	if runCLI("init") != 0 {
-		t.Fatal("init failed")
+	os.WriteFile(".config/undot.conf", []byte("nolink .myrc\n"), 0o644)
+	if runCLI("link") != 0 {
+		t.Fatal("link failed")
 		return
 	}
 	if exists(".myrc") {
-		t.Error("init should remove the previously created .myrc link")
+		t.Error("link should remove the previously created .myrc link")
 	}
 	if !exists(".config/.myrc") {
 		t.Error(".config/.myrc must stay")
@@ -39,14 +39,14 @@ func TestNolinkSkipsAndCleansUp(t *testing.T) {
 	if !isLinkTo(".claude", ".config/.claude") {
 		t.Error("other links must be unaffected")
 	}
-	if runCLI("init") != 0 {
-		t.Error("init should stay clean with nolink in place")
+	if runCLI("link") != 0 {
+		t.Error("link should stay clean with nolink in place")
 	}
 
 	// A real file at the root path is never touched.
 	os.WriteFile(".myrc", []byte("local override\n"), 0o644)
-	if runCLI("init") != 0 {
-		t.Error("init should ignore a real file at a nolink path")
+	if runCLI("link") != 0 {
+		t.Error("link should ignore a real file at a nolink path")
 	}
 	if readFile(".myrc") != "local override\n" {
 		t.Error("real file at nolink path must be left alone")
@@ -59,7 +59,7 @@ func TestNolinkMigrate(t *testing.T) {
 		return
 	}
 	os.Mkdir(".config", 0o755)
-	os.WriteFile(".config/config-init.conf", []byte("nolink .goreleaser.yaml\n"), 0o644)
+	os.WriteFile(".config/undot.conf", []byte("nolink .goreleaser.yaml\n"), 0o644)
 	os.WriteFile(".goreleaser.yaml", []byte("version: 2\n"), 0o644)
 	os.Mkdir(".claude", 0o755)
 
@@ -87,7 +87,8 @@ func TestNolinkUserLevelRejected(t *testing.T) {
 	}
 	// enterTempRepo points XDG_CONFIG_HOME at the repo dir; a user-level
 	// nolink must not be honored.
-	os.WriteFile("config-init.conf", []byte("nolink .claude\n"), 0o644)
+	os.Mkdir("undot", 0o755)
+	os.WriteFile("undot/undot.conf", []byte("nolink .claude\n"), 0o644)
 	os.Mkdir(".claude", 0o755)
 
 	if runCLI("migrate") != 0 {

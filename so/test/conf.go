@@ -10,7 +10,7 @@ func writeRepoConf(content string) bool {
 	if os.Mkdir(".config", 0o755) != nil {
 		return false
 	}
-	return os.WriteFile(".config/config-init.conf", []byte(content), 0o644) == nil
+	return os.WriteFile(".config/undot.conf", []byte(content), 0o644) == nil
 }
 
 func TestConfIgnore(t *testing.T) {
@@ -79,8 +79,9 @@ func TestUserConfAndRepoOverride(t *testing.T) {
 		return
 	}
 	// enterTempRepo sets XDG_CONFIG_HOME to the repo dir, so the user-level
-	// file is ./config-init.conf.
-	os.WriteFile("config-init.conf", []byte(".claude\n"), 0o644)
+	// file is ./undot/undot.conf.
+	os.Mkdir("undot", 0o755)
+	os.WriteFile("undot/undot.conf", []byte(".claude\n"), 0o644)
 	os.Mkdir(".claude", 0o755)
 	os.Mkdir(".cursor", 0o755)
 
@@ -96,7 +97,7 @@ func TestUserConfAndRepoOverride(t *testing.T) {
 	}
 
 	// The repository conf loads after the user conf, so it wins.
-	os.WriteFile(".config/config-init.conf", []byte("!.claude\n"), 0o644)
+	os.WriteFile(".config/undot.conf", []byte("!.claude\n"), 0o644)
 	if runCLI("migrate") != 0 {
 		t.Fatal("second migrate failed")
 		return
@@ -117,28 +118,28 @@ func TestConfFileNeverLinked(t *testing.T) {
 		return
 	}
 
-	if runCLI("migrate") != 0 || runCLI("init") != 0 {
-		t.Fatal("migrate/init failed")
+	if runCLI("migrate") != 0 || runCLI("link") != 0 {
+		t.Fatal("migrate/link failed")
 		return
 	}
-	if exists("config-init.conf") {
-		t.Error(".config/config-init.conf must not be symlinked into the root")
+	if exists("undot.conf") {
+		t.Error(".config/undot.conf must not be symlinked into the root")
 	}
-	// A stray root symlink left by an older config-init gets cleaned up.
-	os.Symlink(".config/config-init.conf", "config-init.conf")
-	if runCLI("init") != 0 {
-		t.Fatal("init failed on stray conf symlink")
+	// A stray root symlink left by an older undot gets cleaned up.
+	os.Symlink(".config/undot.conf", "undot.conf")
+	if runCLI("link") != 0 {
+		t.Fatal("link failed on stray conf symlink")
 		return
 	}
-	if exists("config-init.conf") {
-		t.Error("init should remove a stray root conf symlink")
+	if exists("undot.conf") {
+		t.Error("link should remove a stray root conf symlink")
 	}
 	ignore := readFile(".gitignore")
-	if strings.Contains(ignore, "config-init.conf") {
-		t.Error(".gitignore should not mention config-init.conf")
+	if strings.Contains(ignore, "undot.conf") {
+		t.Error(".gitignore should not mention undot.conf")
 	}
-	if runCLI2("migrate", "config-init.conf") == 0 {
-		t.Error("migrating config-init.conf itself should fail")
+	if runCLI2("migrate", "undot.conf") == 0 {
+		t.Error("migrating undot.conf itself should fail")
 	}
 }
 

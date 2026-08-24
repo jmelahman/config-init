@@ -1,5 +1,5 @@
 // Package strings mirrors the subset of solod.dev/so/strings used by
-// config-init. Functions that take an allocator in solod ignore it here.
+// undot. Functions that take an allocator in solod ignore it here.
 package strings
 
 import (

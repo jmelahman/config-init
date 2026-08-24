@@ -9,7 +9,7 @@ import (
 )
 
 const gitignoreFile = ".gitignore"
-const gitignoreHeader = "# Symlinks into .config/, recreated by `config-init init`."
+const gitignoreHeader = "# Symlinks into .config/, recreated by `undot link`."
 
 // ensureGitignore makes sure every root symlink is ignored via an anchored
 // `/name` pattern. Anchored, because the tracked copy lives at .config/name;
@@ -69,7 +69,7 @@ func ensureGitignore(a mem.Allocator, names []string, dryRun bool) int {
 	}
 	if dryRun {
 		for i := range nMissing {
-			fmt.Printf("config-init: [dry-run] would add %s to %s\n", missing[i], gitignoreFile)
+			fmt.Printf("undot: [dry-run] would add %s to %s\n", missing[i], gitignoreFile)
 		}
 		return nMissing
 	}
@@ -91,10 +91,10 @@ func ensureGitignore(a mem.Allocator, names []string, dryRun bool) int {
 		buf.WriteByte('\n')
 	}
 	if werr := os.WriteFile(gitignoreFile, buf.Bytes(), 0o644); werr != nil {
-		fmt.Fprintf(os.Stderr, "config-init: cannot write %s: %s\n", gitignoreFile, werr.Error())
+		fmt.Fprintf(os.Stderr, "undot: cannot write %s: %s\n", gitignoreFile, werr.Error())
 		return -1
 	}
-	fmt.Printf("config-init: added %d entries to %s\n", nMissing, gitignoreFile)
+	fmt.Printf("undot: added %d entries to %s\n", nMissing, gitignoreFile)
 	return nMissing
 }
 

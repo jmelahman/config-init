@@ -1,5 +1,5 @@
 // Package bytes mirrors the subset of solod.dev/so/bytes used by
-// config-init.
+// undot.
 package bytes
 
 import (

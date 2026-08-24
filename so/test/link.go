@@ -6,17 +6,17 @@ import (
 	"solod.dev/so/testing"
 )
 
-func TestInitNoConfigDir(t *testing.T) {
+func TestLinkNoConfigDir(t *testing.T) {
 	if !enterTempRepo() {
 		t.Fatal("cannot set up temp repo")
 		return
 	}
-	if runCLI("init") != 0 {
-		t.Error("init should be a no-op without .config/")
+	if runCLI("link") != 0 {
+		t.Error("link should be a no-op without .config/")
 	}
 }
 
-func TestInitCreatesAndRepairsLinks(t *testing.T) {
+func TestLinkCreatesAndRepairsLinks(t *testing.T) {
 	if !enterTempRepo() {
 		t.Fatal("cannot set up temp repo")
 		return
@@ -27,8 +27,8 @@ func TestInitCreatesAndRepairsLinks(t *testing.T) {
 	// A stale link that points at the wrong place.
 	os.Symlink("somewhere/else", ".myrc")
 
-	if runCLI("init") != 0 {
-		t.Fatal("init failed")
+	if runCLI("link") != 0 {
+		t.Fatal("link failed")
 		return
 	}
 	if !isLinkTo(".claude", ".config/.claude") {
@@ -39,12 +39,12 @@ func TestInitCreatesAndRepairsLinks(t *testing.T) {
 	}
 
 	// Re-running changes nothing and stays quiet about it.
-	if runCLI("init") != 0 {
-		t.Error("second init failed")
+	if runCLI("link") != 0 {
+		t.Error("second link failed")
 	}
 }
 
-func TestInitConflict(t *testing.T) {
+func TestLinkConflict(t *testing.T) {
 	if !enterTempRepo() {
 		t.Fatal("cannot set up temp repo")
 		return
@@ -54,8 +54,8 @@ func TestInitConflict(t *testing.T) {
 	os.Mkdir(".claude", 0o755)
 	os.WriteFile(".claude/precious.txt", []byte("keep me\n"), 0o644)
 
-	if runCLI("init") == 0 {
-		t.Error("init should fail on a real-directory conflict")
+	if runCLI("link") == 0 {
+		t.Error("link should fail on a real-directory conflict")
 	}
 	if readFile(".claude/precious.txt") != "keep me\n" {
 		t.Error("conflicting directory contents must never be touched")
@@ -64,7 +64,7 @@ func TestInitConflict(t *testing.T) {
 
 func TestNotARepo(t *testing.T) {
 	// A temp dir without .git anywhere up the tree (/tmp has none).
-	dir, err := os.MkdirTemp(tmpBuf[:], "", "config-init-norepo-")
+	dir, err := os.MkdirTemp(tmpBuf[:], "", "undot-norepo-")
 	if err != nil {
 		t.Fatal("cannot create temp dir")
 		return
@@ -73,8 +73,8 @@ func TestNotARepo(t *testing.T) {
 		t.Fatal("cannot chdir")
 		return
 	}
-	if runCLI("init") == 0 {
-		t.Error("init outside a repository should fail")
+	if runCLI("link") == 0 {
+		t.Error("link outside a repository should fail")
 	}
 }
 
@@ -99,16 +99,16 @@ func TestPreCommitInsertExisting(t *testing.T) {
 	if !strings.Contains(pc, "id: black") {
 		t.Error("existing hook lost")
 	}
-	if !strings.Contains(pc, "id: config-init") {
-		t.Error("config-init hook not added")
+	if !strings.Contains(pc, "id: undot") {
+		t.Error("undot hook not added")
 	}
 	if !strings.HasPrefix(pc, "default_install_hook_types:") {
 		t.Error("default_install_hook_types not inserted at the top")
 	}
 	// Our block must appear inside the repos list, before the existing entry.
-	ours := strings.Index(pc, "jmelahman/config-init")
+	ours := strings.Index(pc, "jmelahman/undot")
 	theirs := strings.Index(pc, "psf/black")
 	if ours == -1 || theirs == -1 || ours > theirs {
-		t.Error("config-init repo block not inserted before existing repos")
+		t.Error("undot repo block not inserted before existing repos")
 	}
 }

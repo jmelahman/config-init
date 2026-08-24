@@ -5,10 +5,10 @@
 // functional when translated to C. The solod toolchain builds against the
 // real solod.dev through the nested module in so/ (see so/go.mod).
 //
-// Note: `go install github.com/jmelahman/config-init@version` is refused by
+// Note: `go install github.com/jmelahman/undot@version` is refused by
 // Go because of the replace directive — that's intentional; install from a
 // release binary or a local checkout instead.
-module github.com/jmelahman/config-init
+module github.com/jmelahman/undot
 
 go 1.22
 

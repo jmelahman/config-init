@@ -50,8 +50,8 @@ func TestMigrateBasic(t *testing.T) {
 	}
 
 	pc := readFile(".pre-commit-config.yaml")
-	if !strings.Contains(pc, "id: config-init") {
-		t.Error(".pre-commit-config.yaml missing config-init hook")
+	if !strings.Contains(pc, "id: undot") {
+		t.Error(".pre-commit-config.yaml missing undot hook")
 	}
 	if !strings.Contains(pc, "default_install_hook_types:") {
 		t.Error(".pre-commit-config.yaml missing default_install_hook_types")
@@ -80,7 +80,7 @@ func TestMigrateIdempotent(t *testing.T) {
 		t.Error(".gitignore entry duplicated by second migrate")
 	}
 	pc := readFile(".pre-commit-config.yaml")
-	if strings.Count(pc, "id: config-init") != 1 {
+	if strings.Count(pc, "id: undot") != 1 {
 		t.Error("pre-commit hook duplicated by second migrate")
 	}
 	if !isLinkTo(".claude", ".config/.claude") {

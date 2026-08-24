@@ -1,4 +1,4 @@
-// Package os mirrors the subset of solod.dev/so/os used by config-init,
+// Package os mirrors the subset of solod.dev/so/os used by undot,
 // backed by the Go standard library. Solod's buffer- and allocator-taking
 // signatures are kept; the buffers and allocators are ignored because Go
 // manages the memory.

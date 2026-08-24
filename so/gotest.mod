@@ -5,15 +5,15 @@
 //
 // Both dependencies resolve to local directories, so this needs no network
 // and no sum file.
-module github.com/jmelahman/config-init/so
+module github.com/jmelahman/undot/so
 
 go 1.26
 
 require (
-	github.com/jmelahman/config-init v0.0.0
+	github.com/jmelahman/undot v0.0.0
 	solod.dev v0.3.0
 )
 
-replace github.com/jmelahman/config-init => ../
+replace github.com/jmelahman/undot => ../
 
 replace solod.dev => ../gocompat

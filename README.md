@@ -1,4 +1,4 @@
-# config-init
+# undot
 
 Declutter a project's root directory by taming configuration file sprawl.
 
@@ -14,7 +14,7 @@ before              after
 src/
 ```
 
-Every tool wants a dotfile at the repository root. config-init moves them into a single
+Every tool wants a dotfile at the repository root. undot moves them into a single
 tracked `.config/` directory. Gitignored symlinks point back to the root, so every tool
 keeps working. A [pre-commit](https://pre-commit.com) hook (or
 [prek](https://github.com/j178/prek)) recreates the symlinks on every clone and checkout.
@@ -23,17 +23,17 @@ Teammates install nothing and notice nothing.
 ## Install
 
 ```sh
-uv tool install config-init   # or: pip install config-init
+uv tool install undot   # or: pip install undot
 ```
 
 Small static binaries (~200KB, instant startup) for Linux and macOS, also on
-[GitHub releases](https://github.com/jmelahman/config-init/releases).
+[GitHub releases](https://github.com/jmelahman/undot/releases).
 The pre-commit hook (below) needs no install at all.
 
 ## Migrate an existing repository
 
 ```sh
-config-init migrate             # or name entries: config-init migrate .claude .cursor
+undot migrate             # or name entries: undot migrate .claude .cursor
 git add -A && git commit
 pre-commit install
 ```
@@ -52,10 +52,10 @@ restores any missing symlink:
 ```yaml
 default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
 repos:
-  - repo: https://github.com/jmelahman/config-init
-    rev: v0.2.0
+  - repo: https://github.com/jmelahman/undot
+    rev: v0.3.0
     hooks:
-      - id: config-init
+      - id: undot
 ```
 
 ## CI configs migrate too
@@ -64,8 +64,8 @@ CI checkouts don't run hooks. Most tools accept an explicit config path, so a fi
 `.goreleaser.yaml` can live in `.config/` with no symlink at all:
 
 ```sh
-config-init migrate .goreleaser.yaml
-echo 'nolink .goreleaser.yaml' >> .config/config-init.conf
+undot migrate .goreleaser.yaml
+echo 'nolink .goreleaser.yaml' >> .config/undot.conf
 ```
 
 ```yaml
@@ -81,8 +81,8 @@ echo 'nolink .goreleaser.yaml' >> .config/config-init.conf
 - Conflicts are reported, never overwritten. Migrating a tracked *file* prints the
   `git rm --cached` command you'll want afterwards.
 
-Tune the scan in `.config/config-init.conf` or `~/.config/config-init.conf`, one name
-or glob per line:
+Tune the scan in `.config/undot.conf` or `~/.config/undot/undot.conf`, one
+name or glob per line:
 
 ```
 # never migrate these here

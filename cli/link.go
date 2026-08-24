@@ -16,29 +16,29 @@ const (
 	linkError
 )
 
-// cmdInit symlinks every entry of .config/ into the repository root.
+// cmdLink symlinks every entry of .config/ into the repository root.
 // A missing .config/ is a no-op so the hook is harmless in repos that
-// don't use config-init yet.
-func cmdInit(a mem.Allocator, dryRun bool) int {
+// don't use undot yet.
+func cmdLink(a mem.Allocator, dryRun bool) int {
 	fi, err := os.Lstat(configDir)
 	if err != nil {
 		return 0
 	}
 	if !fi.IsDir() {
-		fmt.Fprintf(os.Stderr, "config-init: %s exists but is not a directory\n", configDir)
+		fmt.Fprintf(os.Stderr, "undot: %s exists but is not a directory\n", configDir)
 		return 1
 	}
 	entries, rerr := os.ReadDir(a, configDir)
 	if rerr != nil {
-		fmt.Fprintf(os.Stderr, "config-init: cannot read %s: %s\n", configDir, rerr.Error())
+		fmt.Fprintf(os.Stderr, "undot: cannot read %s: %s\n", configDir, rerr.Error())
 		return 1
 	}
 	loadIgnoreRules(a)
 	fails := 0
 	for _, e := range entries {
 		if e.Name == confFileName {
-			// Older config-init versions symlinked the conf file into the
-			// root like any other entry; clean that up.
+			// The conf file is never symlinked into the root; treat it
+			// as an implicit nolink entry and clean up any stray link.
 			if !removeNolinkLink(e.Name, dryRun) {
 				fails++
 			}
@@ -70,7 +70,7 @@ func ensureLink(name string, dryRun bool) linkResult {
 	fi, err := os.Lstat(name)
 	if err == nil {
 		if fi.Mode()&os.ModeSymlink == 0 {
-			fmt.Fprintf(os.Stderr, "config-init: %s already exists and is not a symlink; skipping (remove it or move it into %s/)\n", name, configDir)
+			fmt.Fprintf(os.Stderr, "undot: %s already exists and is not a symlink; skipping (remove it or move it into %s/)\n", name, configDir)
 			return linkConflict
 		}
 		var buf [os.MaxPathLen]byte
@@ -81,24 +81,24 @@ func ensureLink(name string, dryRun bool) linkResult {
 		result = linkRelinked
 		if !dryRun {
 			if os.Remove(name) != nil {
-				fmt.Fprintf(os.Stderr, "config-init: cannot remove stale link %s\n", name)
+				fmt.Fprintf(os.Stderr, "undot: cannot remove stale link %s\n", name)
 				return linkError
 			}
 		}
 	}
 	if dryRun {
-		fmt.Printf("config-init: [dry-run] would link %s -> %s\n", name, target)
+		fmt.Printf("undot: [dry-run] would link %s -> %s\n", name, target)
 		return result
 	}
 	if serr := os.Symlink(target, name); serr != nil {
-		fmt.Fprintf(os.Stderr, "config-init: cannot link %s -> %s: %s\n", name, target, serr.Error())
+		fmt.Fprintf(os.Stderr, "undot: cannot link %s -> %s: %s\n", name, target, serr.Error())
 		return linkError
 	}
-	fmt.Printf("config-init: linked %s -> %s\n", name, target)
+	fmt.Printf("undot: linked %s -> %s\n", name, target)
 	return result
 }
 
-// removeNolinkLink cleans up a root symlink that config-init previously
+// removeNolinkLink cleans up a root symlink that undot previously
 // created for an entry now marked nolink, so checkouts transition on their
 // own. Anything at the root path that isn't exactly our symlink is left
 // alone. Returns false only on a failed removal.
@@ -114,13 +114,13 @@ func removeNolinkLink(name string, dryRun bool) bool {
 		return true
 	}
 	if dryRun {
-		fmt.Printf("config-init: [dry-run] would remove %s (nolink)\n", name)
+		fmt.Printf("undot: [dry-run] would remove %s (nolink)\n", name)
 		return true
 	}
 	if os.Remove(name) != nil {
-		fmt.Fprintf(os.Stderr, "config-init: cannot remove %s (nolink)\n", name)
+		fmt.Fprintf(os.Stderr, "undot: cannot remove %s (nolink)\n", name)
 		return false
 	}
-	fmt.Printf("config-init: removed %s (nolink: reference %s directly)\n", name, target)
+	fmt.Printf("undot: removed %s (nolink: reference %s directly)\n", name, target)
 	return true
 }

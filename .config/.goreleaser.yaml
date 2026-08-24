@@ -1,9 +1,9 @@
 version: 2
-project_name: config-init
+project_name: undot
 
 builds:
   - main: ./so
-    binary: config-init
+    binary: undot
     # scripts/sobuild builds with the solod toolchain (so + zig cc) instead
     # of go, producing small static binaries. Windows is not a target:
     # solod's os package needs POSIX.

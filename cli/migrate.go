@@ -20,7 +20,7 @@ var hardProtected = []string{
 
 // guardedDefaults bootstrap the repository on a fresh clone before any
 // hook can recreate symlinks: pre-commit needs its config at the root to
-// run `config-init init` at all, and GitHub reads .github/ from the tree.
+// run `undot link` at all, and GitHub reads .github/ from the tree.
 // Migrating one requires naming it explicitly AND passing --force.
 var guardedDefaults = []string{
 	".github",
@@ -33,8 +33,8 @@ var guardedDefaults = []string{
 // state and secrets rather than shareable configuration, plus configs that
 // CI services read from hook-less checkouts (a migrated .goreleaser.yaml
 // is invisible to goreleaser-action unless the workflow runs
-// `config-init init`). Naming one explicitly (`config-init migrate .env`)
-// still migrates it, and a config-init.conf rule like "!.env" opts it back
+// `undot link`). Naming one explicitly (`undot migrate .env`)
+// still migrates it, and a undot.conf rule like "!.env" opts it back
 // into the scan.
 var skipByDefault = []string{
 	".goreleaser.yaml",
@@ -87,22 +87,22 @@ const (
 func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int {
 	loadIgnoreRules(a)
 	if force && len(explicit) == 0 {
-		fmt.Fprintf(os.Stderr, "config-init: --force requires naming the entries to migrate\n")
+		fmt.Fprintf(os.Stderr, "undot: --force requires naming the entries to migrate\n")
 		return 2
 	}
 	fi, err := os.Lstat(configDir)
 	if err != nil {
 		if dryRun {
-			fmt.Printf("config-init: [dry-run] would create %s/\n", configDir)
+			fmt.Printf("undot: [dry-run] would create %s/\n", configDir)
 		} else {
 			if merr := os.Mkdir(configDir, 0o755); merr != nil {
-				fmt.Fprintf(os.Stderr, "config-init: cannot create %s: %s\n", configDir, merr.Error())
+				fmt.Fprintf(os.Stderr, "undot: cannot create %s: %s\n", configDir, merr.Error())
 				return 1
 			}
-			fmt.Printf("config-init: created %s/\n", configDir)
+			fmt.Printf("undot: created %s/\n", configDir)
 		}
 	} else if !fi.IsDir() {
-		fmt.Fprintf(os.Stderr, "config-init: %s exists but is not a directory\n", configDir)
+		fmt.Fprintf(os.Stderr, "undot: %s exists but is not a directory\n", configDir)
 		return 1
 	}
 
@@ -123,7 +123,7 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int
 	} else {
 		entries, rerr := os.ReadDir(a, ".")
 		if rerr != nil {
-			fmt.Fprintf(os.Stderr, "config-init: cannot read repository root: %s\n", rerr.Error())
+			fmt.Fprintf(os.Stderr, "undot: cannot read repository root: %s\n", rerr.Error())
 			return 1
 		}
 		for _, e := range entries {
@@ -169,7 +169,7 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int
 			}
 		}
 	} else if !dryRun {
-		fmt.Fprintf(os.Stderr, "config-init: cannot read %s: %s\n", configDir, rerr.Error())
+		fmt.Fprintf(os.Stderr, "undot: cannot read %s: %s\n", configDir, rerr.Error())
 		return 1
 	}
 	if dryRun {
@@ -186,10 +186,10 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int
 
 	if nNames == 0 && nMigrated == 0 {
 		if fails > 0 {
-			fmt.Fprintf(os.Stderr, "config-init: completed with %d problems\n", fails)
+			fmt.Fprintf(os.Stderr, "undot: completed with %d problems\n", fails)
 			return 1
 		}
-		fmt.Printf("config-init: nothing to migrate\n")
+		fmt.Printf("undot: nothing to migrate\n")
 		return 0
 	}
 
@@ -201,7 +201,7 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int
 		// migration still exist at the root; a real run links them after the
 		// move, so don't report them as conflicts here.
 		if dryRun && containsString(migrated[:nMigrated], names[i]) {
-			fmt.Printf("config-init: [dry-run] would link %s -> %s/%s\n", names[i], configDir, names[i])
+			fmt.Printf("undot: [dry-run] would link %s -> %s/%s\n", names[i], configDir, names[i])
 			continue
 		}
 		r := ensureLink(names[i], dryRun)
@@ -214,11 +214,11 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int
 	}
 
 	if fails > 0 {
-		fmt.Fprintf(os.Stderr, "config-init: completed with %d problems\n", fails)
+		fmt.Fprintf(os.Stderr, "undot: completed with %d problems\n", fails)
 		return 1
 	}
 	if dryRun {
-		fmt.Printf("config-init: dry run complete; re-run without --dry-run to apply\n")
+		fmt.Printf("undot: dry run complete; re-run without --dry-run to apply\n")
 		return 0
 	}
 	// git keeps tracking a previously tracked FILE at its root path even
@@ -226,7 +226,7 @@ func cmdMigrate(a mem.Allocator, explicit []string, dryRun bool, force bool) int
 	// apply to tracked paths); directories are fine because their tracked
 	// paths moved away. Point at the affected entries.
 	movedFileHint(nMigrated, migrated[:])
-	fmt.Print(`config-init: done. Suggested follow-up:
+	fmt.Print(`undot: done. Suggested follow-up:
   git add -A && git commit
   pre-commit install  # installs post-checkout/post-merge hooks too
 `)
@@ -242,7 +242,7 @@ func movedFileHint(nMigrated int, migrated []string) {
 			continue
 		}
 		if !printed {
-			fmt.Printf("config-init: if these files were tracked by git, also untrack the root symlinks:\n")
+			fmt.Printf("undot: if these files were tracked by git, also untrack the root symlinks:\n")
 			printed = true
 		}
 		fmt.Printf("  git rm --cached %s\n", migrated[i])
@@ -254,25 +254,25 @@ func movedFileHint(nMigrated int, migrated []string) {
 func migrateEntry(name string, dryRun bool, explicit bool, force bool) moveResult {
 	_ = explicit
 	if name == "." || name == ".." || strings.IndexByte(name, '/') >= 0 {
-		fmt.Fprintf(os.Stderr, "config-init: %s is not a root-level entry name\n", name)
+		fmt.Fprintf(os.Stderr, "undot: %s is not a root-level entry name\n", name)
 		return moveFailed
 	}
 	if name == confFileName {
-		fmt.Fprintf(os.Stderr, "config-init: %s is config-init's own configuration; skipping\n", name)
+		fmt.Fprintf(os.Stderr, "undot: %s is undot's own configuration; skipping\n", name)
 		return moveFailed
 	}
 	if containsString(hardProtected, name) {
-		fmt.Fprintf(os.Stderr, "config-init: %s is required at the repository root and cannot be migrated\n", name)
+		fmt.Fprintf(os.Stderr, "undot: %s is required at the repository root and cannot be migrated\n", name)
 		return moveFailed
 	}
 	if containsString(guardedDefaults, name) && !force {
-		fmt.Fprintf(os.Stderr, "config-init: %s bootstraps the repository before any hook can run; pass --force to migrate it anyway\n", name)
+		fmt.Fprintf(os.Stderr, "undot: %s bootstraps the repository before any hook can run; pass --force to migrate it anyway\n", name)
 		return moveFailed
 	}
 	fi, err := os.Lstat(name)
 	if err != nil {
 		if explicit {
-			fmt.Fprintf(os.Stderr, "config-init: %s not found\n", name)
+			fmt.Fprintf(os.Stderr, "undot: %s not found\n", name)
 			return moveFailed
 		}
 		return moveSkipped
@@ -282,17 +282,17 @@ func migrateEntry(name string, dryRun bool, explicit bool, force bool) moveResul
 	}
 	dest := configDir + "/" + name
 	if _, derr := os.Lstat(dest); derr == nil {
-		fmt.Fprintf(os.Stderr, "config-init: both %s and %s exist; resolve manually\n", name, dest)
+		fmt.Fprintf(os.Stderr, "undot: both %s and %s exist; resolve manually\n", name, dest)
 		return moveFailed
 	}
 	if dryRun {
-		fmt.Printf("config-init: [dry-run] would move %s -> %s\n", name, dest)
+		fmt.Printf("undot: [dry-run] would move %s -> %s\n", name, dest)
 		return moveMoved
 	}
 	if rerr := os.Rename(name, dest); rerr != nil {
-		fmt.Fprintf(os.Stderr, "config-init: cannot move %s -> %s: %s\n", name, dest, rerr.Error())
+		fmt.Fprintf(os.Stderr, "undot: cannot move %s -> %s: %s\n", name, dest, rerr.Error())
 		return moveFailed
 	}
-	fmt.Printf("config-init: moved %s -> %s\n", name, dest)
+	fmt.Printf("undot: moved %s -> %s\n", name, dest)
 	return moveMoved
 }

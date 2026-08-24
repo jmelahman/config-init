@@ -4,7 +4,7 @@ import (
 	"solod.dev/so/mem"
 	"solod.dev/so/os"
 
-	"github.com/jmelahman/config-init/cli"
+	"github.com/jmelahman/undot/cli"
 )
 
 // Path strings returned by MkdirTemp are views into this buffer. Tests run
@@ -15,7 +15,7 @@ var tmpBuf [os.MaxPathLen]byte
 // entry) and makes it the working directory. Tests never chdir back: the
 // next test enters its own absolute temp path.
 func enterTempRepo() bool {
-	dir, err := os.MkdirTemp(tmpBuf[:], "", "config-init-test-")
+	dir, err := os.MkdirTemp(tmpBuf[:], "", "undot-test-")
 	if err != nil {
 		return false
 	}
@@ -23,7 +23,7 @@ func enterTempRepo() bool {
 		return false
 	}
 	// Point the user-level config lookup at the (empty) temp repo so a
-	// developer's real ~/.config/config-init.conf can't leak into tests.
+	// developer's real ~/.config/undot/undot.conf can't leak into tests.
 	if os.Setenv("XDG_CONFIG_HOME", dir) != nil {
 		return false
 	}
@@ -31,15 +31,15 @@ func enterTempRepo() bool {
 }
 
 func runCLI(sub string) int {
-	return cli.Run([]string{"config-init", sub})
+	return cli.Run([]string{"undot", sub})
 }
 
 func runCLI2(sub, arg string) int {
-	return cli.Run([]string{"config-init", sub, arg})
+	return cli.Run([]string{"undot", sub, arg})
 }
 
 func runCLI3(sub, arg1, arg2 string) int {
-	return cli.Run([]string{"config-init", sub, arg1, arg2})
+	return cli.Run([]string{"undot", sub, arg1, arg2})
 }
 
 // isLinkTo reports whether name is a symlink pointing exactly at want.

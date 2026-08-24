@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>config-init — declutter your repository root</title>
-<meta name="description" content="config-init tames configuration file sprawl: tool configs move into .config/ with symlinks back, so the repository root stays readable while every tool keeps working.">
+<title>undot — declutter your repository root</title>
+<meta name="description" content="undot tames configuration file sprawl: tool configs move into .config/ with symlinks back, so the repository root stays readable while every tool keeps working.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="config-init">
+<meta property="og:title" content="undot">
 <meta property="og:description" content="Declutter a project's root directory by taming configuration file sprawl.">
-<meta property="og:url" content="https://jamison.lahman.dev/config-init/">
-<meta property="og:image" content="https://jamison.lahman.dev/config-init/og.png">
+<meta property="og:url" content="https://jamison.lahman.dev/undot/">
+<meta property="og:image" content="https://jamison.lahman.dev/undot/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="config-init">
+<meta name="twitter:title" content="undot">
 <meta name="twitter:description" content="Declutter a project's root directory by taming configuration file sprawl.">
-<meta name="twitter:image" content="https://jamison.lahman.dev/config-init/og.png">
+<meta name="twitter:image" content="https://jamison.lahman.dev/undot/og.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗂️</text></svg>">
 <style>
   :root {
@@ -99,10 +99,10 @@
 <main>
 
 <header>
-  <h1>config-init</h1>
+  <h1>undot</h1>
   <p class="tagline">Declutter a project's root directory by taming configuration file sprawl.</p>
   <nav>
-    <a href="https://github.com/jmelahman/config-init">GitHub</a>
+    <a href="https://github.com/jmelahman/undot">GitHub</a>
     <a href="#install">Install</a>
     <a href="#migrate">Migrate</a>
     <a href="#hook">Automatic setup</a>
@@ -110,7 +110,7 @@
   </nav>
 </header>
 
-<p>Every tool wants a dotfile at the repository root. config-init moves them into a single
+<p>Every tool wants a dotfile at the repository root. undot moves them into a single
 tracked <code>.config/</code> directory. Gitignored symlinks point back to the root, so
 every tool keeps working. A <a href="https://pre-commit.com">pre-commit</a> hook (or
 <a href="https://github.com/j178/prek">prek</a>) recreates the symlinks on every clone and
@@ -128,15 +128,15 @@ src/</code></pre>
 
 <h2 id="install">Install</h2>
 
-<pre><code>uv tool install config-init   # or: pip install config-init</code></pre>
+<pre><code>uv tool install undot   # or: pip install undot</code></pre>
 
 <p>Small static binaries (~200KB, instant startup) for Linux and macOS, also on
-<a href="https://github.com/jmelahman/config-init/releases">GitHub releases</a>.
+<a href="https://github.com/jmelahman/undot/releases">GitHub releases</a>.
 The pre-commit hook (below) needs no install at all.</p>
 
 <h2 id="migrate">Migrate an existing repository</h2>
 
-<pre><code>config-init migrate             # or name entries: config-init migrate .claude .cursor
+<pre><code>undot migrate             # or name entries: undot migrate .claude .cursor
 git add -A &amp;&amp; git commit
 pre-commit install</code></pre>
 
@@ -158,10 +158,10 @@ symlink:</p>
 
 <pre><code>default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
 repos:
-  - repo: https://github.com/jmelahman/config-init
-    rev: v0.2.0
+  - repo: https://github.com/jmelahman/undot
+    rev: v0.3.0
     hooks:
-      - id: config-init</code></pre>
+      - id: undot</code></pre>
 
 <h2 id="ci">CI configs migrate too</h2>
 
@@ -169,8 +169,8 @@ repos:
 like <code>.goreleaser.yaml</code> can live in <code>.config/</code> with no symlink at
 all:</p>
 
-<pre><code>config-init migrate .goreleaser.yaml
-echo 'nolink .goreleaser.yaml' &gt;&gt; .config/config-init.conf</code></pre>
+<pre><code>undot migrate .goreleaser.yaml
+echo 'nolink .goreleaser.yaml' &gt;&gt; .config/undot.conf</code></pre>
 
 <pre><code>- run: goreleaser release --clean --config .config/.goreleaser.yaml</code></pre>
 
@@ -186,8 +186,8 @@ echo 'nolink .goreleaser.yaml' &gt;&gt; .config/config-init.conf</code></pre>
       prints the <code>git rm --cached</code> command you'll want afterwards.</li>
 </ul>
 
-<p>Tune the scan in <code>.config/config-init.conf</code> or
-<code>~/.config/config-init.conf</code>, one name or glob per line:</p>
+<p>Tune the scan in <code>.config/undot.conf</code> or
+<code>~/.config/undot/undot.conf</code>, one name or glob per line:</p>
 
 <pre><code># never migrate these here
 .idea*
@@ -197,7 +197,7 @@ echo 'nolink .goreleaser.yaml' &gt;&gt; .config/config-init.conf</code></pre>
 nolink .goreleaser.yaml</code></pre>
 
 <footer>
-  <a href="https://github.com/jmelahman/config-init">config-init on GitHub</a> ·
+  <a href="https://github.com/jmelahman/undot">undot on GitHub</a> ·
   GPL-3.0 licensed
 </footer>
 

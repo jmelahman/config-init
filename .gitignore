@@ -31,17 +31,17 @@ go.work.sum
 # .idea/
 # .vscode/
 
-# config-init build artifacts
-/config-init
+# undot build artifacts
+/undot
 /.cache/
-/config-init-go
+/undot-go
 /dist/
 /.so-bin/
 *.whl
 __pycache__/
 
 
-# Root symlinks config-init manages or removes (nolink); older hook revs
+# Root symlinks undot manages or removes (nolink); older hook revs
 # may transiently recreate them.
 /.goreleaser.yaml
-/config-init.conf
+/undot.conf
