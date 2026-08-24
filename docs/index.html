@@ -99,55 +99,38 @@
   </nav>
 </header>
 
-<p>Every tool wants a dotfile at the repository root: <code>.claude/</code>,
-<code>.cursor/</code>, <code>.yarn/</code>, <code>.husky/</code>, <code>.vscode/</code>, …
-config-init moves them into a single <code>.config/</code> directory and symlinks them back,
-so every tool keeps working while the root stays readable:</p>
+<pre><code>before              after
+──────              ─────
+.claude/            .config/
+.cursor/            .github/
+.editorconfig       src/
+.github/
+.npmrc
+.yarn/
+src/</code></pre>
 
-<pre><code>before                        after
-──────                        ─────
-.claude/                      .config/
-.cursor/                      ├── .claude/
-.yarn/                        ├── .cursor/
-.github/                      └── .yarn/
-src/                          .claude  -&gt; .config/.claude   (symlink, gitignored)
-                              .cursor  -&gt; .config/.cursor   (symlink, gitignored)
-                              .yarn    -&gt; .config/.yarn     (symlink, gitignored)
-                              .github/
-                              src/</code></pre>
-
-<p>Only <code>.config/</code> is tracked by git. The symlinks are recreated automatically by
-a <a href="https://pre-commit.com">pre-commit</a> hook (also works with
-<a href="https://github.com/j178/prek">prek</a>) — teammates clone, and everything is just
-there.</p>
+<p>Every tool wants a dotfile at the repository root. config-init moves them into a single
+tracked <code>.config/</code> directory; locally, gitignored symlinks point back so every
+tool keeps working. A <a href="https://pre-commit.com">pre-commit</a> hook (or
+<a href="https://github.com/j178/prek">prek</a>) recreates the symlinks on every clone and
+checkout — teammates install nothing and notice nothing.</p>
 
 <h2 id="migrate">Migrate an existing repository</h2>
 
 <pre><code>config-init migrate --dry-run   # preview
-config-init migrate             # do it
+config-init migrate             # or name entries: config-init migrate .claude .cursor
 git add -A &amp;&amp; git commit
-pre-commit install              # if hooks weren't installed already</code></pre>
+pre-commit install</code></pre>
 
-<p>One command handles the whole transition, idempotently:</p>
+<p>One idempotent command: moves the configs, creates the symlinks, updates
+<code>.gitignore</code> (existing rules that reached inside a moved directory get matching
+<code>.config/</code> patterns), and registers the hook below.</p>
 
-<ul>
-  <li>moves root config entries into <code>.config/</code> and symlinks them back;</li>
-  <li>updates <code>.gitignore</code> so the symlinks stay untracked — including companion
-      patterns for existing rules that reach inside a moved directory
-      (<code>.yarn/cache</code> keeps being ignored at <code>.config/.yarn/cache</code>);</li>
-  <li>registers the pre-commit hook so every future clone and checkout restores the
-      symlinks by itself.</li>
-</ul>
+<h2 id="hook">Clones and new repos set themselves up</h2>
 
-<p>Prefer to move only specific things? <code>config-init migrate .claude .cursor</code>.
-Machine state, secrets, and bootstrap files (<code>.git*</code>, <code>.github</code>,
-<code>.pre-commit-config.yaml</code>) are protected or skipped by default, and a committed
-<code>.config/config-init.conf</code> tunes the rest. Conflicts are reported, never
-overwritten.</p>
-
-<h2 id="hook">New clones — and new repos — set themselves up</h2>
-
-<p><code>migrate</code> writes this to <code>.pre-commit-config.yaml</code>:</p>
+<p><code>migrate</code> writes this hook config; after <code>clone</code>,
+<code>checkout</code>, <code>merge</code>, or <code>rebase</code> it restores any missing
+symlink:</p>
 
 <pre><code>default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
 repos:
@@ -156,56 +139,54 @@ repos:
     hooks:
       - id: config-init</code></pre>
 
-<p>After <code>clone</code>, <code>checkout</code>, <code>merge</code>, or
-<code>rebase</code>, the hook runs <code>config-init init</code>, which walks
-<code>.config/</code> and (re)creates any missing root symlink. Nobody on the team installs
-anything: pre-commit and prek build the hook themselves, with no network access needed
-during the build.</p>
+<p>Starting a new repository? Skip <code>migrate</code>: commit configs directly under
+<code>.config/</code>, add the snippet above, done.</p>
 
-<p>The same works for a <strong>brand-new repository</strong> — skip <code>migrate</code>
-entirely: commit your configs directly under <code>.config/</code>, add the snippet above,
-and every checkout materializes the symlinks on its own.</p>
+<h2 id="ci">CI configs migrate too</h2>
 
-<h2 id="ci">CI reads configs too — use <code>--config</code> paths</h2>
-
-<p>CI checkouts don't run git hooks, so a config your CI service reads from the worktree
-(<code>.goreleaser.yaml</code>, <code>.golangci.yml</code>, <code>.codecov.yml</code>, …)
-would be a missing symlink there. config-init's scan skips those by default, but you don't
-have to leave them at the root: most tools accept an explicit config path, so the file can
-live in <code>.config/</code> with <strong>no symlink at all</strong>:</p>
+<p>CI checkouts don't run hooks — but most tools take an explicit config path, so a file
+like <code>.goreleaser.yaml</code> can live in <code>.config/</code> with no symlink at
+all:</p>
 
 <pre><code>config-init migrate .goreleaser.yaml
 echo 'nolink .goreleaser.yaml' &gt;&gt; .config/config-init.conf</code></pre>
 
-<pre><code># in your workflow
-- run: goreleaser release --clean --config .config/.goreleaser.yaml</code></pre>
+<pre><code>- run: goreleaser release --clean --config .config/.goreleaser.yaml</code></pre>
 
-<p><code>nolink</code> entries live in <code>.config/</code> without a root symlink;
-<code>init</code> even removes the old symlink on everyone's checkout automatically. This
-repository does exactly this with its own goreleaser config. Alternatively, keep the
-symlinks and add a <code>config-init init</code> step to the workflow before the tool that
-needs them.</p>
+<p>This repository releases itself exactly this way.</p>
+
+<h2 id="guardrails">Guardrails</h2>
+
+<ul>
+  <li><code>.git*</code> files are never migrated, and
+      <code>.github</code>/<code>.pre-commit-config.yaml</code> require <code>--force</code>
+      — a fresh clone must be able to bootstrap the hook.</li>
+  <li>Caches, secrets, and CI-read configs (<code>.venv</code>, <code>.env</code>,
+      <code>.golangci.yml</code>, …) are skipped unless you name them.</li>
+  <li>Conflicts are reported, never overwritten, and migrating a tracked <em>file</em>
+      prints the <code>git rm --cached</code> command you'll want afterwards.</li>
+</ul>
+
+<p>Tune the scan in <code>.config/config-init.conf</code> (committed) or
+<code>~/.config/config-init.conf</code> (per user), one name or glob per line:</p>
+
+<pre><code># never migrate these here
+.idea*
+# do migrate .env, despite the default skip
+!.env
+# keep in .config/ without a root symlink
+nolink .goreleaser.yaml</code></pre>
 
 <h2 id="install">Install</h2>
 
-<p>The pre-commit hook needs no install at all. For the CLI itself:</p>
-
-<pre><code>pip install config-init</code></pre>
-
-<p>Wheels ship small static binaries (~200KB, instant startup) for Linux and macOS on
-amd64/arm64; other POSIX platforms build from the sdist. Standalone binaries are on
-<a href="https://github.com/jmelahman/config-init/releases">GitHub releases</a>. Windows is
-not supported — the workflow depends on symlinks.</p>
-
-<h2 id="symlinks">Why symlinks (and not hard links)?</h2>
-
-<p>Hard links can't reference directories at all, and git breaks file hard links on
-checkout. Relative symlinks work for files and directories alike, survive moving the
-repository, and every tool that resolves paths through the OS follows them transparently.
-They're gitignored rather than committed so platforms without symlink support degrade
-gracefully instead of materializing text files containing a path.</p>
+<p>The hook needs no install. For the CLI: <code>pip install config-init</code> — small
+static binaries (~200KB, instant startup) for Linux and macOS, also on
+<a href="https://github.com/jmelahman/config-init/releases">GitHub releases</a>. POSIX
+only.</p>
 
 <footer>
+  <em>Why symlinks?</em> Hard links can't reference directories and git breaks them on
+  checkout; relative symlinks work everywhere paths resolve through the OS.<br>
   <a href="https://github.com/jmelahman/config-init">config-init on GitHub</a> ·
   <a href="https://github.com/jmelahman/config-init/blob/master/CONTRIBUTING.md">Contributing</a> ·
   GPL-3.0 licensed
