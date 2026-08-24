@@ -72,10 +72,6 @@ echo 'nolink .goreleaser.yaml' >> .config/config-init.conf
 - run: goreleaser release --clean --config .config/.goreleaser.yaml
 ```
 
-Developers automatically place their files in the correct location with a `post-checkout` hook.
-CI passes explicit flags as-needed.
-And for everything else, opt-out as desired via `.config/config-init.conf`.
-
 ## Guardrails
 
 - `.git*` files are never migrated. `.github` and `.pre-commit-config.yaml` require

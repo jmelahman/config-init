@@ -131,8 +131,8 @@ src/</code></pre>
 <pre><code>uv tool install config-init   # or: pip install config-init</code></pre>
 
 <p>Small static binaries (~200KB, instant startup) for Linux and macOS, also on
-<a href="https://github.com/jmelahman/config-init/releases">GitHub releases</a>. POSIX
-only. The pre-commit hook (below) needs no install at all.</p>
+<a href="https://github.com/jmelahman/config-init/releases">GitHub releases</a>.
+The pre-commit hook (below) needs no install at all.</p>
 
 <h2 id="migrate">Migrate an existing repository</h2>
 
@@ -174,10 +174,6 @@ echo 'nolink .goreleaser.yaml' &gt;&gt; .config/config-init.conf</code></pre>
 
 <pre><code>- run: goreleaser release --clean --config .config/.goreleaser.yaml</code></pre>
 
-<p>Developers automatically place their files in the correct location with a
-<code>post-checkout</code> hook. CI passes explicit flags as-needed. And for everything
-else, opt-out as desired via <code>.config/config-init.conf</code>.</p>
-
 <h2 id="guardrails">Guardrails</h2>
 
 <ul>
@@ -202,7 +198,6 @@ nolink .goreleaser.yaml</code></pre>
 
 <footer>
   <a href="https://github.com/jmelahman/config-init">config-init on GitHub</a> ·
-  <a href="https://github.com/jmelahman/config-init/blob/master/CONTRIBUTING.md">Contributing</a> ·
   GPL-3.0 licensed
 </footer>
 
