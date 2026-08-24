@@ -99,6 +99,12 @@
   </nav>
 </header>
 
+<p>Every tool wants a dotfile at the repository root. config-init moves them into a single
+tracked <code>.config/</code> directory. Gitignored symlinks point back to the root, so
+every tool keeps working. A <a href="https://pre-commit.com">pre-commit</a> hook (or
+<a href="https://github.com/j178/prek">prek</a>) recreates the symlinks on every clone and
+checkout. Teammates install nothing and notice nothing.</p>
+
 <pre><code>before              after
 ──────              ─────
 .claude/            .config/
@@ -108,12 +114,6 @@
 .npmrc
 .yarn/
 src/</code></pre>
-
-<p>Every tool wants a dotfile at the repository root. config-init moves them into a single
-tracked <code>.config/</code> directory; locally, gitignored symlinks point back so every
-tool keeps working. A <a href="https://pre-commit.com">pre-commit</a> hook (or
-<a href="https://github.com/j178/prek">prek</a>) recreates the symlinks on every clone and
-checkout — teammates install nothing and notice nothing.</p>
 
 <h2 id="install">Install</h2>
 
@@ -141,8 +141,8 @@ pre-commit install</code></pre>
 
 <h2 id="hook">Clones and new repos set themselves up</h2>
 
-<p><code>migrate</code> writes this hook config; after <code>clone</code>,
-<code>checkout</code>, <code>merge</code>, or <code>rebase</code> it restores any missing
+<p><code>migrate</code> writes this hook config. After <code>clone</code>,
+<code>checkout</code>, <code>merge</code>, or <code>rebase</code>, it restores any missing
 symlink:</p>
 
 <pre><code>default_install_hook_types: [pre-commit, post-checkout, post-merge, post-rewrite]
@@ -154,7 +154,7 @@ repos:
 
 <h2 id="ci">CI configs migrate too</h2>
 
-<p>CI checkouts don't run hooks — but most tools take an explicit config path, so a file
+<p>CI checkouts don't run hooks. Most tools accept an explicit config path, so a file
 like <code>.goreleaser.yaml</code> can live in <code>.config/</code> with no symlink at
 all:</p>
 
@@ -170,17 +170,17 @@ else, opt-out as desired via <code>.config/config-init.conf</code>.</p>
 <h2 id="guardrails">Guardrails</h2>
 
 <ul>
-  <li><code>.git*</code> files are never migrated, and
-      <code>.github</code>/<code>.pre-commit-config.yaml</code> require <code>--force</code>
-      — a fresh clone must be able to bootstrap the hook.</li>
+  <li><code>.git*</code> files are never migrated. <code>.github</code> and
+      <code>.pre-commit-config.yaml</code> require <code>--force</code>, because a fresh
+      clone must be able to bootstrap the hook.</li>
   <li>Caches, secrets, and CI-read configs (<code>.venv</code>, <code>.env</code>,
       <code>.golangci.yml</code>, …) are skipped unless you name them.</li>
-  <li>Conflicts are reported, never overwritten, and migrating a tracked <em>file</em>
+  <li>Conflicts are reported, never overwritten. Migrating a tracked <em>file</em>
       prints the <code>git rm --cached</code> command you'll want afterwards.</li>
 </ul>
 
 <p>Tune the scan in <code>.config/config-init.conf</code> or
-<code>~/.config/config-init.conf</code>; one name or glob per line:</p>
+<code>~/.config/config-init.conf</code>, one name or glob per line:</p>
 
 <pre><code># never migrate these here
 .idea*

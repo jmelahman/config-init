@@ -15,10 +15,10 @@ src/
 ```
 
 Every tool wants a dotfile at the repository root. config-init moves them into a single
-tracked `.config/` directory; locally, gitignored symlinks point back so every tool keeps
-working. A [pre-commit](https://pre-commit.com) hook (or [prek](https://github.com/j178/prek))
-recreates the symlinks on every clone and checkout — teammates install nothing and notice
-nothing.
+tracked `.config/` directory. Gitignored symlinks point back to the root, so every tool
+keeps working. A [pre-commit](https://pre-commit.com) hook (or
+[prek](https://github.com/j178/prek)) recreates the symlinks on every clone and checkout.
+Teammates install nothing and notice nothing.
 
 ## Install
 
@@ -46,7 +46,7 @@ One idempotent command:
 
 ## Clones and new repos set themselves up
 
-`migrate` writes this hook config; after `clone`, `checkout`, `merge`, or `rebase` it
+`migrate` writes this hook config. After `clone`, `checkout`, `merge`, or `rebase`, it
 restores any missing symlink:
 
 ```yaml
@@ -60,8 +60,8 @@ repos:
 
 ## CI configs migrate too
 
-CI checkouts don't run hooks — but most tools take an explicit config path, so a file
-like `.goreleaser.yaml` can live in `.config/` with no symlink at all:
+CI checkouts don't run hooks. Most tools accept an explicit config path, so a file like
+`.goreleaser.yaml` can live in `.config/` with no symlink at all:
 
 ```sh
 config-init migrate .goreleaser.yaml
@@ -78,14 +78,15 @@ And for everything else, opt-out as desired via `.config/config-init.conf`.
 
 ## Guardrails
 
-- `.git*` files are never migrated, and `.github`/`.pre-commit-config.yaml` require
-  `--force` — a fresh clone must be able to bootstrap the hook.
+- `.git*` files are never migrated. `.github` and `.pre-commit-config.yaml` require
+  `--force`, because a fresh clone must be able to bootstrap the hook.
 - Caches, secrets, and CI-read configs (`.venv`, `.env`, `.golangci.yml`, ...) are
   skipped unless you name them.
-- Conflicts are reported, never overwritten, and migrating a tracked *file* prints the
+- Conflicts are reported, never overwritten. Migrating a tracked *file* prints the
   `git rm --cached` command you'll want afterwards.
 
-Tune the scan in `.config/config-init.conf` or `~/.config/config-init.conf`; one name or glob per line:
+Tune the scan in `.config/config-init.conf` or `~/.config/config-init.conf`, one name
+or glob per line:
 
 ```
 # never migrate these here
