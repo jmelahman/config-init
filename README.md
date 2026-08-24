@@ -20,6 +20,16 @@ working. A [pre-commit](https://pre-commit.com) hook (or [prek](https://github.c
 recreates the symlinks on every clone and checkout — teammates install nothing and notice
 nothing.
 
+## Install
+
+```sh
+uv tool install config-init   # or: pip install config-init
+```
+
+Small static binaries (~200KB, instant startup) for Linux and macOS, also on
+[GitHub releases](https://github.com/jmelahman/config-init/releases). POSIX only.
+The pre-commit hook (below) needs no install at all.
+
 ## Migrate an existing repository
 
 ```sh
@@ -85,9 +95,3 @@ Tune the scan in `.config/config-init.conf` or `~/.config/config-init.conf`; one
 # keep in .config/ without a root symlink
 nolink .goreleaser.yaml
 ```
-
-## Install
-
-The hook needs no install. For the CLI: `pip install config-init` — small static
-binaries (~200KB, instant startup) for Linux and macOS, also on
-[GitHub releases](https://github.com/jmelahman/config-init/releases). POSIX only.

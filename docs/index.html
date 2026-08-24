@@ -92,10 +92,10 @@
   <p class="tagline">Declutter a project's root directory by taming configuration file sprawl.</p>
   <nav>
     <a href="https://github.com/jmelahman/config-init">GitHub</a>
+    <a href="#install">Install</a>
     <a href="#migrate">Migrate</a>
     <a href="#hook">Automatic setup</a>
     <a href="#ci">CI</a>
-    <a href="#install">Install</a>
   </nav>
 </header>
 
@@ -114,6 +114,14 @@ tracked <code>.config/</code> directory; locally, gitignored symlinks point back
 tool keeps working. A <a href="https://pre-commit.com">pre-commit</a> hook (or
 <a href="https://github.com/j178/prek">prek</a>) recreates the symlinks on every clone and
 checkout — teammates install nothing and notice nothing.</p>
+
+<h2 id="install">Install</h2>
+
+<pre><code>uv tool install config-init   # or: pip install config-init</code></pre>
+
+<p>Small static binaries (~200KB, instant startup) for Linux and macOS, also on
+<a href="https://github.com/jmelahman/config-init/releases">GitHub releases</a>. POSIX
+only. The pre-commit hook (below) needs no install at all.</p>
 
 <h2 id="migrate">Migrate an existing repository</h2>
 
@@ -180,13 +188,6 @@ else, opt-out as desired via <code>.config/config-init.conf</code>.</p>
 !.env
 # keep in .config/ without a root symlink
 nolink .goreleaser.yaml</code></pre>
-
-<h2 id="install">Install</h2>
-
-<p>The hook needs no install. For the CLI: <code>pip install config-init</code> — small
-static binaries (~200KB, instant startup) for Linux and macOS, also on
-<a href="https://github.com/jmelahman/config-init/releases">GitHub releases</a>. POSIX
-only.</p>
 
 <footer>
   <a href="https://github.com/jmelahman/config-init">config-init on GitHub</a> ·
