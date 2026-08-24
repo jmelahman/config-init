@@ -1,6 +1,6 @@
 # config-init
 
-Declutter a project's root directory by organizing and initializing configuration files.
+Declutter a project's root directory by taming configuration file sprawl.
 
 ```
 before              after
@@ -23,15 +23,16 @@ nothing.
 ## Migrate an existing repository
 
 ```sh
-config-init migrate --dry-run   # preview
 config-init migrate             # or name entries: config-init migrate .claude .cursor
 git add -A && git commit
 pre-commit install
 ```
 
-One idempotent command: moves the configs, creates the symlinks, updates `.gitignore`
-(existing rules that reached inside a moved directory get matching `.config/` patterns),
-and registers the hook below.
+One idempotent command:
+- moves the configs
+- creates the symlinks
+- updates `.gitignore` (existing rules that reached inside a moved directory get matching `.config/` patterns)
+- registers the git hook below
 
 ## Clones and new repos set themselves up
 
@@ -47,9 +48,6 @@ repos:
       - id: config-init
 ```
 
-Starting a new repository? Skip `migrate`: commit configs directly under `.config/`, add
-the snippet above, done.
-
 ## CI configs migrate too
 
 CI checkouts don't run hooks — but most tools take an explicit config path, so a file
@@ -64,7 +62,9 @@ echo 'nolink .goreleaser.yaml' >> .config/config-init.conf
 - run: goreleaser release --clean --config .config/.goreleaser.yaml
 ```
 
-This repository releases itself exactly this way.
+Developers automatically place their files in the correct location with a `post-checkout` hook.
+CI passes explicit flags as-needed.
+And for everything else, opt-out as desired via `.config/config-init.conf`.
 
 ## Guardrails
 
@@ -75,8 +75,7 @@ This repository releases itself exactly this way.
 - Conflicts are reported, never overwritten, and migrating a tracked *file* prints the
   `git rm --cached` command you'll want afterwards.
 
-Tune the scan in `.config/config-init.conf` (committed) or `~/.config/config-init.conf`
-(per user), one name or glob per line:
+Tune the scan in `.config/config-init.conf` or `~/.config/config-init.conf`; one name or glob per line:
 
 ```
 # never migrate these here
@@ -92,9 +91,3 @@ nolink .goreleaser.yaml
 The hook needs no install. For the CLI: `pip install config-init` — small static
 binaries (~200KB, instant startup) for Linux and macOS, also on
 [GitHub releases](https://github.com/jmelahman/config-init/releases). POSIX only.
-
----
-
-*Why symlinks?* Hard links can't reference directories and git breaks them on checkout;
-relative symlinks work everywhere paths resolve through the OS. — Contributions welcome:
-see [CONTRIBUTING.md](CONTRIBUTING.md).

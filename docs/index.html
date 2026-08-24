@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>config-init — declutter your repository root</title>
-<meta name="description" content="config-init moves tool config directories into .config/ and symlinks them back, keeping the repository root readable while every tool keeps working.">
+<meta name="description" content="config-init tames configuration file sprawl: tool configs move into .config/ with symlinks back, so the repository root stays readable while every tool keeps working.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗂️</text></svg>">
 <style>
   :root {
@@ -89,7 +89,7 @@
 
 <header>
   <h1>config-init</h1>
-  <p class="tagline">Declutter a project's root directory by organizing and initializing configuration files.</p>
+  <p class="tagline">Declutter a project's root directory by taming configuration file sprawl.</p>
   <nav>
     <a href="https://github.com/jmelahman/config-init">GitHub</a>
     <a href="#migrate">Migrate</a>
@@ -117,14 +117,19 @@ checkout — teammates install nothing and notice nothing.</p>
 
 <h2 id="migrate">Migrate an existing repository</h2>
 
-<pre><code>config-init migrate --dry-run   # preview
-config-init migrate             # or name entries: config-init migrate .claude .cursor
+<pre><code>config-init migrate             # or name entries: config-init migrate .claude .cursor
 git add -A &amp;&amp; git commit
 pre-commit install</code></pre>
 
-<p>One idempotent command: moves the configs, creates the symlinks, updates
-<code>.gitignore</code> (existing rules that reached inside a moved directory get matching
-<code>.config/</code> patterns), and registers the hook below.</p>
+<p>One idempotent command:</p>
+
+<ul>
+  <li>moves the configs</li>
+  <li>creates the symlinks</li>
+  <li>updates <code>.gitignore</code> (existing rules that reached inside a moved directory
+      get matching <code>.config/</code> patterns)</li>
+  <li>registers the git hook below</li>
+</ul>
 
 <h2 id="hook">Clones and new repos set themselves up</h2>
 
@@ -139,9 +144,6 @@ repos:
     hooks:
       - id: config-init</code></pre>
 
-<p>Starting a new repository? Skip <code>migrate</code>: commit configs directly under
-<code>.config/</code>, add the snippet above, done.</p>
-
 <h2 id="ci">CI configs migrate too</h2>
 
 <p>CI checkouts don't run hooks — but most tools take an explicit config path, so a file
@@ -153,7 +155,9 @@ echo 'nolink .goreleaser.yaml' &gt;&gt; .config/config-init.conf</code></pre>
 
 <pre><code>- run: goreleaser release --clean --config .config/.goreleaser.yaml</code></pre>
 
-<p>This repository releases itself exactly this way.</p>
+<p>Developers automatically place their files in the correct location with a
+<code>post-checkout</code> hook. CI passes explicit flags as-needed. And for everything
+else, opt-out as desired via <code>.config/config-init.conf</code>.</p>
 
 <h2 id="guardrails">Guardrails</h2>
 
@@ -167,8 +171,8 @@ echo 'nolink .goreleaser.yaml' &gt;&gt; .config/config-init.conf</code></pre>
       prints the <code>git rm --cached</code> command you'll want afterwards.</li>
 </ul>
 
-<p>Tune the scan in <code>.config/config-init.conf</code> (committed) or
-<code>~/.config/config-init.conf</code> (per user), one name or glob per line:</p>
+<p>Tune the scan in <code>.config/config-init.conf</code> or
+<code>~/.config/config-init.conf</code>; one name or glob per line:</p>
 
 <pre><code># never migrate these here
 .idea*
@@ -185,8 +189,6 @@ static binaries (~200KB, instant startup) for Linux and macOS, also on
 only.</p>
 
 <footer>
-  <em>Why symlinks?</em> Hard links can't reference directories and git breaks them on
-  checkout; relative symlinks work everywhere paths resolve through the OS.<br>
   <a href="https://github.com/jmelahman/config-init">config-init on GitHub</a> ·
   <a href="https://github.com/jmelahman/config-init/blob/master/CONTRIBUTING.md">Contributing</a> ·
   GPL-3.0 licensed
