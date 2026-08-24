@@ -40,3 +40,8 @@ go.work.sum
 *.whl
 __pycache__/
 
+
+# Root symlinks config-init manages or removes (nolink); older hook revs
+# may transiently recreate them.
+/.goreleaser.yaml
+/config-init.conf
